@@ -1,0 +1,49 @@
+import React, { useState } from 'react';
+import Sidebar from './Sidebar';
+import Header from './Header';
+import { UserProfile, NAV_ITEMS } from '../../types';
+
+interface DashboardLayoutProps {
+    role: UserProfile;
+    activeTab: string;
+    setActiveTab: (tab: string) => void;
+    onLogout: () => void;
+    onGoToPayment: () => void;
+    children: React.ReactNode;
+}
+
+export default function DashboardLayout({
+    role,
+    activeTab,
+    setActiveTab,
+    onLogout,
+    onGoToPayment,
+    children
+}: DashboardLayoutProps) {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const activeItem = NAV_ITEMS.find(item => item.id === activeTab);
+
+    return (
+        <div className="flex h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans overflow-hidden relative">
+            <Sidebar
+                role={role}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                isSidebarOpen={isSidebarOpen}
+                setIsSidebarOpen={setIsSidebarOpen}
+                onLogout={onLogout}
+                onGoToPayment={onGoToPayment}
+            />
+            <main className="flex-1 flex flex-col h-full overflow-hidden">
+                <Header
+                    role={role}
+                    activeItem={activeItem}
+                    setIsSidebarOpen={setIsSidebarOpen}
+                />
+                <div className="flex-1 overflow-y-scroll p-4 md:p-8 custom-scrollbar">
+                    {children}
+                </div>
+            </main>
+        </div>
+    );
+}
