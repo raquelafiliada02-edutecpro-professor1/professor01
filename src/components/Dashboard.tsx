@@ -22,7 +22,13 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ userId, role, userCreatedAt, userDataExpiracao, onLogout, onGoToPayment }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState(NAV_ITEMS[0].id);
+  // Initialize with a valid tab for the role or the first one if unsure
+  const getInitialTab = () => {
+    const authorizedTabs = NAV_ITEMS.filter(item => item.roles.includes(role as any));
+    return authorizedTabs.length > 0 ? authorizedTabs[0].id : NAV_ITEMS[0].id;
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [records, setRecords] = useState<PedagogicalRecord[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -65,21 +71,62 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
     objectives: '',
     content: '',
     resources: '',
-    evaluation: ''
+    evaluation: '',
+    // New Monthly Record fields
+    professorName: '',
+    discipline: '',
+    schoolUnit: '',
+    totalAulasDadas: '',
+    aulasPrevistas: '',
+    aulasPendentes: '',
+    apdHours: '',
+    metodologias: '',
+    materiaisDidaticos: '',
+    frequenciaDiaria: '',
+    justificativasFaltas: '',
+    obsComportamento: '',
+    comunicacaoResponsaveis: '',
+    participacaoConselhos: '',
+    atividadesColetivas: '',
+    formacaoContinuada: '',
+    autoavaliacao: '',
+    feedbackCoordenacao: ''
   });
 
   // Load records from localStorage on mount
   useEffect(() => {
-    const savedRecords = localStorage.getItem(`edutec_records_${role}`);
-    if (savedRecords) {
-      setRecords(JSON.parse(savedRecords));
+    try {
+      const savedRecords = localStorage.getItem(`edutec_records_${role}`);
+      if (savedRecords) {
+        const parsed = JSON.parse(savedRecords);
+        if (Array.isArray(parsed)) {
+          setRecords(parsed);
+        } else {
+          setRecords([]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load local records:', err);
+      setRecords([]);
     }
   }, [role]);
 
   // Save records to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem(`edutec_records_${role}`, JSON.stringify(records));
+    if (records && Array.isArray(records)) {
+      localStorage.setItem(`edutec_records_${role}`, JSON.stringify(records));
+    }
   }, [records, role]);
+
+  // Ensure activeTab is valid when role changes
+  useEffect(() => {
+    const authorizedTabs = NAV_ITEMS.filter(item => item.roles.includes(role as any));
+    const isTabAuthorized = authorizedTabs.some(item => item.id === activeTab);
+
+    if (!isTabAuthorized && authorizedTabs.length > 0) {
+      setActiveTab(authorizedTabs[0].id);
+    }
+  }, [role]);
 
   const filteredNav = NAV_ITEMS.filter(item => item.roles.includes(role as any));
   const categories = Array.from(new Set(filteredNav.map(item => item.category)));
@@ -107,7 +154,25 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
         objectives: record.objectives || '',
         content: record.content || '',
         resources: record.resources || '',
-        evaluation: record.evaluation || ''
+        evaluation: record.evaluation || '',
+        professorName: record.professorName || '',
+        discipline: record.discipline || '',
+        schoolUnit: record.schoolUnit || '',
+        totalAulasDadas: record.totalAulasDadas || '',
+        aulasPrevistas: record.aulasPrevistas || '',
+        aulasPendentes: record.aulasPendentes || '',
+        apdHours: record.apdHours || '',
+        metodologias: record.metodologias || '',
+        materiaisDidaticos: record.materiaisDidaticos || '',
+        frequenciaDiaria: record.frequenciaDiaria || '',
+        justificativasFaltas: record.justificativasFaltas || '',
+        obsComportamento: record.obsComportamento || '',
+        comunicacaoResponsaveis: record.comunicacaoResponsaveis || '',
+        participacaoConselhos: record.participacaoConselhos || '',
+        atividadesColetivas: record.atividadesColetivas || '',
+        formacaoContinuada: record.formacaoContinuada || '',
+        autoavaliacao: record.autoavaliacao || '',
+        feedbackCoordenacao: record.feedbackCoordenacao || ''
       });
     } else {
       // Check limits for Free plan
@@ -253,6 +318,8 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
     } else {
       if (activeTab === 'planejamento-diario') {
         alert("Planejamento diário registrado com sucesso.");
+      } else if (activeTab === 'registro-mensal') {
+        alert("Registro mensal salvo com sucesso.");
       } else {
         alert("Registro salvo com sucesso.");
       }
@@ -345,6 +412,14 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
       addSection("Conteúdo / Atividades Planejadas", formData.content);
       addSection("Recursos Didáticos", formData.resources);
       addSection("Avaliação / Observações", formData.evaluation);
+    } else if (activeTab === 'registro-mensal') {
+      // Monthly Record Detailed PDF Sections
+      addSection("1. Identificação e Carga Horária", `Professor: ${formData.professorName}\nDisciplina: ${formData.discipline}\nUnidade: ${formData.schoolUnit}\nTotal Aulas Dadas: ${formData.totalAulasDadas}\nAulas Previstas: ${formData.aulasPrevistas}\nAulas Pendentes: ${formData.aulasPendentes}\nHoras APD: ${formData.apdHours}`);
+      addSection("2. Conteúdos e Metodologias", `Conteúdos: ${formData.content}\nMetodologias: ${formData.metodologias}`);
+      addSection("3. Avaliações e Materiais", `Avaliações: ${formData.evaluation}\nMateriais: ${formData.materiaisDidaticos}`);
+      addSection("4. Frequência e Comportamento", `Frequência: ${formData.frequenciaDiaria}\nJustificativas: ${formData.justificativasFaltas}\nComportamento: ${formData.obsComportamento}`);
+      addSection("5. Relacionamento Escola-Comunidade", `Comunicação: ${formData.comunicacaoResponsaveis}\nConselhos: ${formData.participacaoConselhos}\nAtividades Coletivas: ${formData.atividadesColetivas}`);
+      addSection("6. Reflexão e Desenvolvimento", `Formação: ${formData.formacaoContinuada}\nAutoavaliação: ${formData.autoavaliacao}\nFeedback: ${formData.feedbackCoordenacao}`);
     } else {
       addSection("Observações do Professor", formData.description);
       addSection("Tom do Texto", formData.tone);
@@ -440,17 +515,14 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Turma / Ano/Série</label>
-                      <select
+                      <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Turma / Ano / Série</label>
+                      <input
+                        type="text"
                         value={formData.turma}
-                        onChange={(e) => setFormData({ ...formData, turma: e.target.value, studentName: '' })}
-                        className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white"
-                      >
-                        <option value="">Selecione uma Turma já cadastrada (Opcional)</option>
-                        {Array.from(new Set(supabaseStudents.map(s => s.turma).filter(Boolean))).map((t) => (
-                          <option key={t as string} value={t as string}>{t}</option>
-                        ))}
-                      </select>
+                        onChange={(e) => setFormData({ ...formData, turma: e.target.value })}
+                        placeholder="Ex: 1º Ano A, 2º Ano B..."
+                        className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Componente Curricular</label>
@@ -515,13 +587,14 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
                         <p className="text-[10px] text-black/40 mt-1">Segure CTRL (ou CMD) para selecionar múltiplos códigos.</p>
                       </div>
 
-                      {role !== 'free' && (
-                        <div className="mt-2 flex gap-2">
+                      <div className="mt-2 space-y-2">
+                        <label className="text-[10px] font-bold text-black/40 uppercase tracking-wider">Adicionar Código BNCC (opcional)</label>
+                        <div className="flex gap-2">
                           <input
                             type="text"
                             value={manualBnccInput}
                             onChange={(e) => setManualBnccInput(e.target.value.toUpperCase())}
-                            placeholder="Ou digite o código BNCC manual (Ex: EF01LP99)"
+                            placeholder="Ex: EF01LP99"
                             className="flex-1 px-4 py-2.5 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none text-sm bg-white transition-all"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -546,7 +619,7 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
                             Adicionar
                           </button>
                         </div>
-                      )}
+                      </div>
 
                       {formData.bnccCodes.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -619,12 +692,257 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
                       </div>
                     </div>
                   </div>
+                ) : activeTab === 'registro-mensal' ? (
+                  /* Registro Mensal Specific Fields - 6 Sections */
+                  <div className="space-y-8">
+                    {/* Section 1: Identificação e Carga Horária */}
+                    <div className="bg-black/5 p-6 rounded-2xl space-y-6">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-black/30">1. Identificação e Carga Horária</h4>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Nome do Professor</label>
+                          <input
+                            type="text"
+                            value={formData.professorName}
+                            onChange={(e) => setFormData({ ...formData, professorName: e.target.value })}
+                            placeholder="Nome completo"
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Disciplina</label>
+                          <input
+                            type="text"
+                            value={formData.discipline}
+                            onChange={(e) => setFormData({ ...formData, discipline: e.target.value })}
+                            placeholder="Ex: Língua Portuguesa"
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Unidade Escolar</label>
+                          <input
+                            type="text"
+                            value={formData.schoolUnit}
+                            onChange={(e) => setFormData({ ...formData, schoolUnit: e.target.value })}
+                            placeholder="Nome da Escola"
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Turma / Ano / Série</label>
+                          <input
+                            type="text"
+                            value={formData.yearGrade}
+                            onChange={(e) => setFormData({ ...formData, yearGrade: e.target.value })}
+                            placeholder="Ex: 1º Ano Ensino Fundamental"
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid md:grid-cols-4 gap-6 pt-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider text-xs">Total Aulas Dadas</label>
+                          <input
+                            type="number"
+                            value={formData.totalAulasDadas}
+                            onChange={(e) => setFormData({ ...formData, totalAulasDadas: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider text-xs">Aulas Previstas</label>
+                          <input
+                            type="number"
+                            value={formData.aulasPrevistas}
+                            onChange={(e) => setFormData({ ...formData, aulasPrevistas: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider text-xs">Aulas Pendentes</label>
+                          <input
+                            type="number"
+                            value={formData.aulasPendentes}
+                            onChange={(e) => setFormData({ ...formData, aulasPendentes: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider text-xs">Horas APD</label>
+                          <input
+                            type="text"
+                            value={formData.apdHours}
+                            onChange={(e) => setFormData({ ...formData, apdHours: e.target.value })}
+                            placeholder="Planejamento/APD"
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Conteúdos e Metodologias */}
+                    <div className="bg-black/5 p-6 rounded-2xl space-y-6">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-black/30">2. Conteúdos e Metodologias</h4>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Conteúdos Ministrados no Mês</label>
+                        <textarea
+                          rows={3}
+                          value={formData.content}
+                          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                          placeholder="Resumo dos conteúdos trabalhados..."
+                          className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Metodologias e Tecnologias</label>
+                        <textarea
+                          rows={3}
+                          value={formData.metodologias}
+                          onChange={(e) => setFormData({ ...formData, metodologias: e.target.value })}
+                          placeholder="Metodologias ativas, Sala do Futuro, CMSP, etc..."
+                          className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Section 3: Avaliações e Materiais */}
+                    <div className="bg-black/5 p-6 rounded-2xl space-y-6">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-black/30">3. Avaliações e Materiais</h4>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Registro de Avaliações e Recuperação</label>
+                        <textarea
+                          rows={3}
+                          value={formData.evaluation}
+                          onChange={(e) => setFormData({ ...formData, evaluation: e.target.value })}
+                          placeholder="Provas, trabalhos, recuperação contínua..."
+                          className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Materiais Didáticos Utilizados</label>
+                        <textarea
+                          rows={2}
+                          value={formData.materiaisDidaticos}
+                          onChange={(e) => setFormData({ ...formData, materiaisDidaticos: e.target.value })}
+                          placeholder="Livros, vídeos, ferramentas digitais..."
+                          className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Section 4: Frequência e Comportamento */}
+                    <div className="bg-black/5 p-6 rounded-2xl space-y-6">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-black/30">4. Frequência e Comportamento</h4>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Resumo da Frequência Diária</label>
+                        <textarea
+                          rows={2}
+                          value={formData.frequenciaDiaria}
+                          onChange={(e) => setFormData({ ...formData, frequenciaDiaria: e.target.value })}
+                          placeholder="Observações sobre faltas e pontualidade..."
+                          className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                        />
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Justificativa de Faltas</label>
+                          <textarea
+                            rows={2}
+                            value={formData.justificativasFaltas}
+                            onChange={(e) => setFormData({ ...formData, justificativasFaltas: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Obs. de Comportamento</label>
+                          <textarea
+                            rows={2}
+                            value={formData.obsComportamento}
+                            onChange={(e) => setFormData({ ...formData, obsComportamento: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 5: Relacionamento Escola-Comunidade */}
+                    <div className="bg-black/5 p-6 rounded-2xl space-y-6">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-black/30">5. Relacionamento Escola-Comunidade</h4>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Comunicação com Responsáveis</label>
+                        <textarea
+                          rows={2}
+                          value={formData.comunicacaoResponsaveis}
+                          onChange={(e) => setFormData({ ...formData, comunicacaoResponsaveis: e.target.value })}
+                          placeholder="Reuniões, comunicados, atendimentos..."
+                          className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                        />
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Conselhos e Reuniões</label>
+                          <textarea
+                            rows={2}
+                            value={formData.participacaoConselhos}
+                            onChange={(e) => setFormData({ ...formData, participacaoConselhos: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Atividades Coletivas</label>
+                          <textarea
+                            rows={2}
+                            value={formData.atividadesColetivas}
+                            onChange={(e) => setFormData({ ...formData, atividadesColetivas: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 6: Reflexão e Desenvolvimento */}
+                    <div className="bg-black/5 p-6 rounded-2xl space-y-6">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-black/30">6. Reflexão e Desenvolvimento</h4>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Formação Continuada</label>
+                        <textarea
+                          rows={2}
+                          value={formData.formacaoContinuada}
+                          onChange={(e) => setFormData({ ...formData, formacaoContinuada: e.target.value })}
+                          placeholder="Cursos, HTPCs, formações específicas..."
+                          className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                        />
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Autoavaliação do Mês</label>
+                          <textarea
+                            rows={2}
+                            value={formData.autoavaliacao}
+                            onChange={(e) => setFormData({ ...formData, autoavaliacao: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Feedback da Coordenação</label>
+                          <textarea
+                            rows={2}
+                            value={formData.feedbackCoordenacao}
+                            onChange={(e) => setFormData({ ...formData, feedbackCoordenacao: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   /* General Module Fields */
                   <div className="bg-black/5 p-6 rounded-2xl space-y-6">
                     <h4 className="text-sm font-black uppercase tracking-widest text-black/30">Detalhes do Registro</h4>
                     <div className="grid md:grid-cols-2 gap-6">
-                      {activeTab !== 'relatorios-turma' && (
+                      {activeTab !== 'relatorios-turma' && activeTab !== 'diario-semanal' && (
                         <div className="space-y-2">
                           <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Nome do Aluno</label>
                           {formData.turma ? (
@@ -695,7 +1013,7 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
                   type="submit"
                   className="flex-1 py-4 bg-[#00A859] text-white rounded-full font-bold hover:bg-[#008F4C] transition-all shadow-lg shadow-[#00A859]/20"
                 >
-                  {activeTab === 'planejamento-diario' ? 'Salvar Planejamento' : 'Salvar Alterações'}
+                  {activeTab === 'planejamento-diario' ? 'Salvar Planejamento' : activeTab === 'registro-mensal' ? 'Salvar Registro Mensal' : 'Salvar Alterações'}
                 </button>
                 <button
                   type="button"

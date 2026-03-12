@@ -20,6 +20,7 @@ export default function App() {
   const [userDataExpiracao, setUserDataExpiracao] = useState<string | null>(null);
 
   const fetchUserProfile = async (userId: string) => {
+    setIsInitializing(true);
     try {
       const { data, error } = await supabase
         .from('users')

@@ -38,6 +38,25 @@ export interface PedagogicalRecord {
   content?: string;
   resources?: string;
   evaluation?: string;
+  // New Monthly Record fields
+  professorName?: string;
+  discipline?: string;
+  schoolUnit?: string;
+  totalAulasDadas?: string;
+  aulasPrevistas?: string;
+  aulasPendentes?: string;
+  apdHours?: string;
+  metodologias?: string;
+  materiaisDidaticos?: string;
+  frequenciaDiaria?: string;
+  justificativasFaltas?: string;
+  obsComportamento?: string;
+  comunicacaoResponsaveis?: string;
+  participacaoConselhos?: string;
+  atividadesColetivas?: string;
+  formacaoContinuada?: string;
+  autoavaliacao?: string;
+  feedbackCoordenacao?: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
