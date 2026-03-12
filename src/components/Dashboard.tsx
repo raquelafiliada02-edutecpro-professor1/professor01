@@ -132,6 +132,12 @@ export default function Dashboard({ userId, userEmail, role, userCreatedAt, user
     }
   }, [role]);
 
+  // Reset form when changing tabs
+  useEffect(() => {
+    setIsFormOpen(false);
+    setEditingRecord(null);
+  }, [activeTab]);
+
   const filteredNav = NAV_ITEMS.filter(item => item.roles.includes(role as any));
   const categories = Array.from(new Set(filteredNav.map(item => item.category)));
   const activeItem = NAV_ITEMS.find(item => item.id === activeTab);
@@ -1223,8 +1229,8 @@ export default function Dashboard({ userId, userEmail, role, userCreatedAt, user
                   <button
                     onClick={() => setRecordForExport(prev => prev ? { ...prev, exportFormat: 'pdf' } : null)}
                     className={`py-4 rounded-2xl border-2 font-bold transition-all flex flex-col items-center gap-2 ${(recordForExport?.exportFormat || 'pdf') === 'pdf'
-                        ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
-                        : 'border-black/5 hover:border-black/10 text-black/40'
+                      ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
+                      : 'border-black/5 hover:border-black/10 text-black/40'
                       }`}
                   >
                     <Icons.FileText size={20} />
@@ -1233,8 +1239,8 @@ export default function Dashboard({ userId, userEmail, role, userCreatedAt, user
                   <button
                     onClick={() => setRecordForExport(prev => prev ? { ...prev, exportFormat: 'csv' } : null)}
                     className={`py-4 rounded-2xl border-2 font-bold transition-all flex flex-col items-center gap-2 ${recordForExport?.exportFormat === 'csv'
-                        ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
-                        : 'border-black/5 hover:border-black/10 text-black/40'
+                      ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
+                      : 'border-black/5 hover:border-black/10 text-black/40'
                       }`}
                   >
                     <Icons.Table size={20} />

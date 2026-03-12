@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  TrendingUp, 
-  Users, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  TrendingUp,
+  Users,
+  CheckCircle,
+  AlertCircle,
   ChevronRight,
   FileText,
   Calendar,
@@ -29,16 +29,16 @@ import {
   Clock,
   History
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
   Cell,
   PieChart,
   Pie
@@ -118,23 +118,6 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
         { id: 'turmas', label: 'Turmas', icon: School },
         { id: 'presenca', label: 'Presença', icon: CheckSquare },
       ]
-    },
-    {
-      title: 'Comunicação',
-      items: [
-        { id: 'agenda-digital', label: 'Agenda Digital', icon: Book },
-        { id: 'comunicados', label: 'Comunicados', icon: Megaphone },
-        { id: 'manual', label: 'Manual do Sistema', icon: HelpCircle },
-      ]
-    },
-    {
-      title: 'Administrativo',
-      items: [
-        { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
-        { id: 'secretaria', label: 'Secretaria', icon: FileBox },
-        { id: 'direcao', label: 'Direção', icon: ShieldCheck },
-        { id: 'administrativo-geral', label: 'Administrativo', icon: Settings },
-      ]
     }
   ];
 
@@ -142,7 +125,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-between">
-          <button 
+          <button
             onClick={() => setView('general')}
             className="flex items-center gap-2 text-black/60 hover:text-black transition-colors font-bold"
           >
@@ -177,14 +160,14 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} domain={[0, 10]} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="grade" 
-                    stroke="#00A859" 
-                    strokeWidth={4} 
+                  <Line
+                    type="monotone"
+                    dataKey="grade"
+                    stroke="#00A859"
+                    strokeWidth={4}
                     dot={{ r: 6, fill: '#00A859', strokeWidth: 2, stroke: '#fff' }}
                     activeDot={{ r: 8, strokeWidth: 0 }}
                   />
@@ -208,7 +191,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} domain={[0, 100]} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                   />
                   <Bar dataKey="rate" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={40} />
@@ -256,8 +239,8 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
             </h3>
             <div className="bg-gradient-to-br from-[#00A859] to-[#008F4C] p-6 rounded-[32px] text-white space-y-4 shadow-lg shadow-[#00A859]/20">
               <p className="text-sm leading-relaxed opacity-90">
-                Ana Beatriz demonstra excelente progresso em Língua Portuguesa, com aumento de 15% na média desde o 1º bimestre. 
-                Sua frequência é exemplar (97.5%). 
+                Ana Beatriz demonstra excelente progresso em Língua Portuguesa, com aumento de 15% na média desde o 1º bimestre.
+                Sua frequência é exemplar (97.5%).
                 <br /><br />
                 <strong>Recomendação:</strong> Introduzir atividades de desafio em produção textual para manter o engajamento.
               </p>
@@ -280,7 +263,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
           <h2 className="text-3xl font-black tracking-tight">Dashboard de Evolução</h2>
           <p className="text-black/40 font-medium">Visão geral do desempenho acadêmico e frequência</p>
         </div>
-        <button 
+        <button
           onClick={() => setView('individual')}
           className="px-8 py-4 bg-black text-white rounded-full font-bold hover:bg-black/80 transition-all flex items-center justify-center gap-3 shadow-xl"
         >
@@ -327,14 +310,14 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} domain={[0, 10]} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="grade" 
-                  stroke="#00A859" 
-                  strokeWidth={4} 
+                <Line
+                  type="monotone"
+                  dataKey="grade"
+                  stroke="#00A859"
+                  strokeWidth={4}
                   dot={{ r: 6, fill: '#00A859', strokeWidth: 2, stroke: '#fff' }}
                   activeDot={{ r: 8, strokeWidth: 0 }}
                 />
@@ -356,7 +339,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} domain={[0, 100]} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                 />
                 <Bar dataKey="rate" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={30} />

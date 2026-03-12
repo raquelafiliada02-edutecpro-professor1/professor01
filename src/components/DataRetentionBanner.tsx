@@ -23,6 +23,7 @@ export default function DataRetentionBanner({
     const [isDismissed, setIsDismissed] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [sendEmail, setSendEmail] = useState(false);
+    const [exportFormat, setExportFormat] = useState<'pdf' | 'csv'>('pdf');
 
     if (role === 'diretor' || role === 'public' || isDismissed) return null;
 
@@ -82,16 +83,26 @@ export default function DataRetentionBanner({
                         <p className="text-sm text-black/70 mt-1 mb-3">
                             Sua assinatura está ativa. Os dados permanecem armazenados sem prazo de exclusão. Mantenha o pagamento em dia para continuar com os dados armazenados de forma segura.
                         </p>
-                        <div className="flex flex-col gap-2">
-                            <label className="flex items-center gap-2 text-sm text-black/70 select-none cursor-pointer w-fit mb-1">
-                                <input
-                                    type="checkbox"
-                                    checked={sendEmail}
-                                    onChange={(e) => setSendEmail(e.target.checked)}
-                                    className="rounded border-gray-300 text-[#00A859] focus:ring-[#00A859]"
-                                />
-                                Enviar cópia por e-mail também
-                            </label>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 text-sm text-black/70 select-none cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={sendEmail}
+                                        onChange={(e) => setSendEmail(e.target.checked)}
+                                        className="rounded border-gray-300 text-[#00A859] focus:ring-[#00A859]"
+                                    />
+                                    Enviar cópia por e-mail também
+                                </label>
+                                <select
+                                    value={exportFormat}
+                                    onChange={(e) => setExportFormat(e.target.value as 'pdf' | 'csv')}
+                                    className="text-xs font-bold border-black/10 rounded-lg py-1 px-2 bg-white outline-none focus:ring-1 focus:ring-[#00A859]"
+                                >
+                                    <option value="pdf">PDF</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                            </div>
                             <button
                                 onClick={() => exportData()}
                                 disabled={isExporting}
@@ -142,9 +153,7 @@ export default function DataRetentionBanner({
     const exportData = async () => {
         setIsExporting(true);
         try {
-            // Filtrar apenas os módulos pedagógicos (embora records já venham filtrados da prop, é bom garantir o que entra).
             const allowedModules = ['diario-semanal', 'registro-mensal', 'planejamento-diario', 'relatorio-individual', 'relatorios-turma', 'parecer-pcd', 'parecer-final'];
-
             const recordsToExport = records.filter(r => allowedModules.includes(r.moduleId));
 
             if (recordsToExport.length === 0) {
@@ -153,143 +162,95 @@ export default function DataRetentionBanner({
                 return;
             }
 
-            // 1. Gerar CSV Local e Payload para E-mail
-            let csvContent = "Título,Data,Turma/Ano/Série,Componente Curricular,Detalhes do Registro\n";
+            if (exportFormat === 'csv') {
+                // Generate CSV
+                let csvContent = "Título,Data,Turma/Ano/Série,Componente Curricular,Detalhes do Registro\n";
+                recordsToExport.forEach(r => {
+                    const titulo = (r.title || '').replace(/"/g, '""');
+                    const data = new Date(r.date + 'T00:00:00').toLocaleDateString('pt-BR');
+                    const turmaSerie = `${r.turma || ''} ${r.yearGrade ? '/ ' + r.yearGrade : ''}`.trim().replace(/"/g, '""');
+                    const componente = (r.curricularComponent || '').replace(/"/g, '""');
+                    const detalhes = (r.description || r.objectives || '').replace(/"/g, '""');
+                    csvContent += `"${titulo}","${data}","${turmaSerie}","${componente}","${detalhes}"\n`;
+                });
 
-            recordsToExport.forEach(r => {
-                const titulo = (r.title || '').replace(/"/g, '""');
-                const data = new Date(r.date + 'T00:00:00').toLocaleDateString('pt-BR');
-                const turmaSerie = `${r.turma || ''} ${r.yearGrade ? '/ ' + r.yearGrade : ''}`.trim().replace(/"/g, '""');
-                const componente = (r.curricularComponent || '').replace(/"/g, '""');
-                const detalhes = (r.description || r.objectives || '').replace(/"/g, '""');
-
-                csvContent += `"${titulo}","${data}","${turmaSerie}","${componente}","${detalhes}"\n`;
-            });
-
-            const downloadBlob = (content: string, filename: string) => {
-                const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", filename);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
+                link.href = URL.createObjectURL(blob);
+                link.download = `EduTecPro_Registros_${new Date().getTime()}.csv`;
                 link.click();
-                document.body.removeChild(link);
-            };
 
-            // Baixar o CSV
-            downloadBlob(csvContent, "registros_pedagogicos_export.csv");
-
-            // 2. Gerar PDF Local
-            const doc = new jsPDF();
-            const pageWidth = doc.internal.pageSize.width;
-
-            // Capa/Header do PDF
-            doc.setFillColor(0, 168, 89);
-            doc.rect(0, 0, pageWidth, 40, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(24);
-            doc.setFont("helvetica", "bold");
-            doc.text("EduTecPro", 14, 25);
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "normal");
-            doc.text("Exportação de Registros Pedagógicos", pageWidth - 14, 25, { align: 'right' });
-
-            let currentY = 50;
-
-            recordsToExport.forEach((record, index) => {
-                if (currentY > 250) {
-                    doc.addPage();
-                    currentY = 20;
+                if (sendEmail) {
+                    await supabase.functions.invoke('sendExportEmail', {
+                        body: { csvContent, format: 'csv' }
+                    });
                 }
+            } else {
+                // Generate PDF
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.width;
 
-                doc.setTextColor(50, 50, 50);
-                doc.setFontSize(14);
+                doc.setFillColor(0, 168, 89);
+                doc.rect(0, 0, pageWidth, 40, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(24);
                 doc.setFont("helvetica", "bold");
-                doc.text(record.title, 14, currentY);
-                currentY += 8;
+                doc.text("EduTecPro", 14, 25);
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "normal");
+                doc.text("Exportação de Registros Pedagógicos", pageWidth - 14, 25, { align: 'right' });
 
-                const dataStr = new Date(record.date + 'T00:00:00').toLocaleDateString('pt-BR');
-                const turmaSerie = `${record.turma || ''} ${record.yearGrade ? '/ ' + record.yearGrade : ''}`.trim();
+                let currentY = 50;
+                recordsToExport.forEach((record, index) => {
+                    if (currentY > 250) { doc.addPage(); currentY = 20; }
+                    doc.setTextColor(50, 50, 50); doc.setFontSize(14); doc.setFont("helvetica", "bold");
+                    doc.text(record.title, 14, currentY); currentY += 8;
+                    const dataStr = new Date(record.date + 'T00:00:00').toLocaleDateString('pt-BR');
+                    const turmaSerie = `${record.turma || ''} ${record.yearGrade ? '/ ' + record.yearGrade : ''}`.trim();
+                    const infoData = [['Data', dataStr]];
+                    if (turmaSerie) infoData.push(['Turma/Ano/Série', turmaSerie]);
+                    if (record.curricularComponent) infoData.push(['Componente Curricular', record.curricularComponent]);
 
-                const infoData = [
-                    ['Data', dataStr],
-                ];
-                if (turmaSerie) infoData.push(['Turma/Ano/Série', turmaSerie]);
-                if (record.curricularComponent) infoData.push(['Componente Curricular', record.curricularComponent]);
+                    autoTable(doc, {
+                        startY: currentY, body: infoData, theme: 'plain',
+                        styles: { fontSize: 10, cellPadding: 1 },
+                        columnStyles: { 0: { fontStyle: 'bold', textColor: [0, 0, 0], cellWidth: 50 }, 1: { textColor: [80, 80, 80] } }
+                    });
 
-                autoTable(doc, {
-                    startY: currentY,
-                    body: infoData,
-                    theme: 'plain',
-                    styles: { fontSize: 10, cellPadding: 1 },
-                    columnStyles: {
-                        0: { fontStyle: 'bold', textColor: [0, 0, 0], cellWidth: 50 },
-                        1: { textColor: [80, 80, 80] }
+                    currentY = (doc as any).lastAutoTable.finalY + 10;
+                    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(0, 168, 89);
+                    doc.text("Detalhes do Registro", 14, currentY); currentY += 6;
+                    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+                    const detailsText = record.description || record.objectives || 'Sem descrição detalhada.';
+                    const splitText = doc.splitTextToSize(detailsText, pageWidth - 28);
+                    doc.text(splitText, 14, currentY); currentY += (splitText.length * 5) + 15;
+
+                    if (index < recordsToExport.length - 1) {
+                        doc.setDrawColor(200, 200, 200);
+                        doc.line(14, currentY - 5, pageWidth - 14, currentY - 5);
                     }
                 });
 
-                currentY = (doc as any).lastAutoTable.finalY + 10;
-
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(11);
-                doc.setTextColor(0, 168, 89);
-                doc.text("Detalhes do Registro", 14, currentY);
-                currentY += 6;
-
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                doc.setTextColor(60, 60, 60);
-
-                const detailsText = record.description || record.objectives || 'Sem descrição detalhada.';
-                const splitText = doc.splitTextToSize(detailsText, pageWidth - 28);
-                doc.text(splitText, 14, currentY);
-
-                currentY += (splitText.length * 5) + 15;
-
-                // Separator line between records if not the last one
-                if (index < recordsToExport.length - 1) {
-                    doc.setDrawColor(200, 200, 200);
-                    doc.line(14, currentY - 5, pageWidth - 14, currentY - 5);
+                const pageCount = doc.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+                    doc.text(`EduTecPro • Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
                 }
-            });
 
-            // Footer
-            const pageCount = doc.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(150, 150, 150);
-                doc.text(`EduTecPro • Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
-            }
+                const pdfBase64 = doc.output('datauristring').split(',')[1];
+                doc.save(`EduTecPro_Registros_${new Date().getTime()}.pdf`);
 
-            doc.save(`EduTecPro_Registros_Pedagogicos_${new Date().getTime()}.pdf`);
-
-            // 2. Disparar Edge Function para email se o usuário optou
-            if (sendEmail) {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session?.access_token) {
-                    const response = await fetch('https://tmdturyqtaxihzomihss.supabase.co/functions/v1/sendExportEmail', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${session.access_token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ csvContent })
+                if (sendEmail) {
+                    await supabase.functions.invoke('sendExportEmail', {
+                        body: { pdfContent: pdfBase64, format: 'pdf' }
                     });
-
-                    if (!response.ok) {
-                        throw new Error('Erro ao enviar e-mail pela plataforma.');
-                    }
                 }
-                alert("Download iniciado! Uma cópia também foi enviada para o seu e-mail cadastrado.");
-            } else {
-                alert("Download exportado com sucesso no seu navegador.");
             }
-        } catch (err) {
+
+            alert(sendEmail ? "Download iniciado! Uma cópia também foi enviada para o seu e-mail cadastrado." : "Download exportado com sucesso no seu navegador.");
+        } catch (err: any) {
             console.error(err);
-            alert("Os arquivos foram baixados no navegador, mas houve um erro ao enviar a cópia por e-mail.");
+            alert("Houve um erro na exportação: " + (err.message || 'Verifique as configurações.'));
         } finally {
             setIsExporting(false);
         }
@@ -308,16 +269,26 @@ export default function DataRetentionBanner({
                 </p>
 
                 {showExportButton && (
-                    <div className="mt-4 flex flex-col gap-2">
-                        <label className={`flex items-center gap-2 text-sm select-none cursor-pointer w-fit ${showWarningUI ? 'text-red-800' : 'text-orange-800'}`}>
-                            <input
-                                type="checkbox"
-                                checked={sendEmail}
-                                onChange={(e) => setSendEmail(e.target.checked)}
-                                className={`rounded border-gray-300 focus:ring-opacity-50 ${showWarningUI ? 'text-red-600 focus:ring-red-500' : 'text-orange-600 focus:ring-orange-500'}`}
-                            />
-                            Enviar cópia por e-mail também
-                        </label>
+                    <div className="mt-4 flex flex-col gap-3">
+                        <div className="flex items-center gap-4">
+                            <label className={`flex items-center gap-2 text-sm select-none cursor-pointer ${showWarningUI ? 'text-red-800' : 'text-orange-800'}`}>
+                                <input
+                                    type="checkbox"
+                                    checked={sendEmail}
+                                    onChange={(e) => setSendEmail(e.target.checked)}
+                                    className={`rounded border-gray-300 focus:ring-opacity-50 ${showWarningUI ? 'text-red-600 focus:ring-red-500' : 'text-orange-600 focus:ring-orange-500'}`}
+                                />
+                                Enviar cópia por e-mail também
+                            </label>
+                            <select
+                                value={exportFormat}
+                                onChange={(e) => setExportFormat(e.target.value as 'pdf' | 'csv')}
+                                className={`text-xs font-bold border rounded-lg py-1 px-2 bg-white outline-none focus:ring-1 ${showWarningUI ? 'border-red-200 focus:ring-red-500' : 'border-orange-200 focus:ring-orange-500'}`}
+                            >
+                                <option value="pdf">PDF</option>
+                                <option value="csv">CSV</option>
+                            </select>
+                        </div>
                         <button
                             onClick={exportData}
                             disabled={isExporting}

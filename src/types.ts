@@ -4,7 +4,7 @@ export interface NavItem {
   id: string;
   label: string;
   icon: string;
-  category: '' | 'Registros Pedagógicos' | 'Relatórios' | 'Gestão Escolar' | 'Comunicação' | 'Administrativo';
+  category: '' | 'Registros Pedagógicos' | 'Relatórios' | 'Gestão Escolar';
   roles: ('diretor' | 'professor' | 'free' | 'pro')[];
 }
 
@@ -80,15 +80,4 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'professores', label: 'Professores', icon: 'GraduationCap', category: 'Gestão Escolar', roles: ['diretor'] },
   { id: 'turmas', label: 'Turmas', icon: 'School', category: 'Gestão Escolar', roles: ['diretor'] },
   { id: 'presenca', label: 'Presença', icon: 'CheckSquare', category: 'Gestão Escolar', roles: ['diretor', 'professor'] },
-
-  // Comunicação (Escola only mostly)
-  { id: 'agenda-digital', label: 'Agenda Digital', icon: 'Book', category: 'Comunicação', roles: ['diretor', 'professor'] },
-  { id: 'comunicados', label: 'Comunicados', icon: 'Megaphone', category: 'Comunicação', roles: ['diretor', 'professor'] },
-  { id: 'portal-pais', label: 'Portal dos Pais', icon: 'Heart', category: 'Comunicação', roles: ['diretor'] },
-
-  // Administrativo (Escola only)
-  { id: 'financeiro', label: 'Financeiro', icon: 'DollarSign', category: 'Administrativo', roles: ['diretor'] },
-  { id: 'secretaria', label: 'Secretaria', icon: 'FileBox', category: 'Administrativo', roles: ['diretor'] },
-  { id: 'direcao', label: 'Direção', icon: 'ShieldCheck', category: 'Administrativo', roles: ['diretor'] },
-  { id: 'administrativo-geral', label: 'Administrativo', icon: 'Settings', category: 'Administrativo', roles: ['diretor'] },
 ];
