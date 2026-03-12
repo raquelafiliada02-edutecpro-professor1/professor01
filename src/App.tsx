@@ -168,6 +168,7 @@ export default function App() {
   return (
     <Dashboard
       userId={session?.user.id || ''}
+      userEmail={session?.user.email || ''}
       role={currentProfile}
       onLogout={handleLogout}
       onGoToPayment={handleGoToPayment}

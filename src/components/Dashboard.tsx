@@ -14,6 +14,7 @@ import DataRetentionBanner from './DataRetentionBanner';
 
 interface DashboardProps {
   userId: string;
+  userEmail: string;
   role: UserProfile;
   userCreatedAt?: string | null;
   userDataExpiracao?: string | null;
@@ -21,7 +22,7 @@ interface DashboardProps {
   onGoToPayment: () => void;
 }
 
-export default function Dashboard({ userId, role, userCreatedAt, userDataExpiracao, onLogout, onGoToPayment }: DashboardProps) {
+export default function Dashboard({ userId, userEmail, role, userCreatedAt, userDataExpiracao, onLogout, onGoToPayment }: DashboardProps) {
   // Initialize with a valid tab for the role or the first one if unsure
   const getInitialTab = () => {
     const authorizedTabs = NAV_ITEMS.filter(item => item.roles.includes(role as any));
@@ -37,6 +38,8 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
   // Supabase dynamic students for forms
   const [supabaseStudents, setSupabaseStudents] = useState<Student[]>([]);
   const [manualBnccInput, setManualBnccInput] = useState('');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [recordForExport, setRecordForExport] = useState<PedagogicalRecord | null>(null);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -90,7 +93,8 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
     atividadesColetivas: '',
     formacaoContinuada: '',
     autoavaliacao: '',
-    feedbackCoordenacao: ''
+    feedbackCoordenacao: '',
+    exportFormat: 'pdf' as 'pdf' | 'csv'
   });
 
   // Load records from localStorage on mount
@@ -172,7 +176,8 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
         atividadesColetivas: record.atividadesColetivas || '',
         formacaoContinuada: record.formacaoContinuada || '',
         autoavaliacao: record.autoavaliacao || '',
-        feedbackCoordenacao: record.feedbackCoordenacao || ''
+        feedbackCoordenacao: record.feedbackCoordenacao || '',
+        exportFormat: 'pdf'
       });
     } else {
       // Check limits for Free plan
@@ -219,7 +224,8 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
         objectives: '',
         content: '',
         resources: '',
-        evaluation: ''
+        evaluation: '',
+        exportFormat: 'pdf'
       });
     }
     setIsFormOpen(true);
@@ -329,112 +335,142 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
     setEditingRecord(null);
   };
 
-  const generatePDF = () => {
-    if (!formData.title || !formData.date) {
-      alert("Por favor, preencha os campos obrigatórios (Título e Data) antes de gerar o documento.");
+  const handleExport = async (recordToExport: PedagogicalRecord | null = null) => {
+    const targetData = recordToExport || formData;
+    const format = targetData.exportFormat || 'pdf';
+
+    if (!targetData.title || !targetData.date) {
+      alert("Por favor, preencha os campos obrigatórios (Título e Data) antes de exportar.");
       return;
     }
 
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
+    try {
+      if (format === 'csv') {
+        // Generate CSV
+        const headers = ['Título', 'Data', 'Módulo', 'Turma', 'Componente Curricular', 'Período', 'Descrição'];
+        const row = [
+          targetData.title,
+          targetData.date,
+          activeItem?.label || activeTab,
+          targetData.turma || '',
+          targetData.curricularComponent || '',
+          targetData.period || '',
+          targetData.description || targetData.content || ''
+        ];
 
-    // Header
-    doc.setFillColor(0, 168, 89); // EduTecPro Green (#00A859)
-    doc.rect(0, 0, pageWidth, 40, 'F');
+        // Add module-specific fields to CSV if needed
+        if (activeTab === 'registro-mensal') {
+          headers.push('Professor', 'Disciplina', 'Escola', 'Aulas Dadas', 'Aulas Previstas', 'Aulas Pendentes');
+          row.push(targetData.professorName || '', targetData.discipline || '', targetData.schoolUnit || '', targetData.totalAulasDadas || '', targetData.aulasPrevistas || '', targetData.aulasPendentes || '');
+        }
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont("helvetica", "bold");
-    doc.text("EduTecPro", 14, 25);
+        const csvContent = [headers.join(','), row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')].join('\n');
 
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(activeItem?.label || 'Documento Pedagógico', pageWidth - 14, 25, { align: 'right' });
+        // Download CSV
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `EduTecPro_${activeItem?.label.replace(/ /g, '_')}_${new Date().getTime()}.csv`;
+        link.click();
 
-    // Document Info
-    doc.setTextColor(50, 50, 50);
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text(formData.title, 14, 55);
+        // Send Email
+        await supabase.functions.invoke('sendExportEmail', {
+          body: { csvContent, format: 'csv' }
+        });
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Data: ${new Date(formData.date).toLocaleDateString('pt-BR')} `, 14, 65);
+      } else {
+        // Generate PDF
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
 
-    const infoData = [];
-    if (formData.turma) infoData.push(['Turma/Série', formData.turma]);
-    if (formData.studentName) infoData.push(['Aluno', formData.studentName]);
-    if (formData.curricularComponent) infoData.push(['Componente Curricular', formData.curricularComponent]);
-    if (formData.period) infoData.push(['Período', formData.period]);
-    if (formData.bnccCodes && formData.bnccCodes.length > 0) infoData.push(['Códigos BNCC', formData.bnccCodes.join(', ')]);
+        // Header
+        doc.setFillColor(0, 168, 89);
+        doc.rect(0, 0, pageWidth, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.text("EduTecPro", 14, 25);
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "normal");
+        doc.text(activeItem?.label || 'Documento Pedagógico', pageWidth - 14, 25, { align: 'right' });
 
-    autoTable(doc, {
-      startY: 75,
-      body: infoData,
-      theme: 'plain',
-      styles: { fontSize: 11, cellPadding: 2 },
-      columnStyles: {
-        0: { fontStyle: 'bold', textColor: [0, 0, 0], cellWidth: 50 },
-        1: { textColor: [80, 80, 80] }
+        // Document Info
+        doc.setTextColor(50, 50, 50);
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text(targetData.title, 14, 55);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Data: ${new Date(targetData.date).toLocaleDateString('pt-BR')} `, 14, 65);
+
+        const infoData = [];
+        if (targetData.turma) infoData.push(['Turma / Ano / Série', targetData.turma]);
+        if (targetData.studentName) infoData.push(['Aluno', targetData.studentName]);
+        if (targetData.curricularComponent) infoData.push(['Componente Curricular', targetData.curricularComponent]);
+        if (targetData.period) infoData.push(['Período', targetData.period]);
+        if (targetData.bnccCodes && targetData.bnccCodes.length > 0) infoData.push(['Códigos BNCC', targetData.bnccCodes.join(', ')]);
+
+        autoTable(doc, {
+          startY: 75,
+          body: infoData,
+          theme: 'plain',
+          styles: { fontSize: 11, cellPadding: 2 },
+          columnStyles: { 0: { fontStyle: 'bold', textColor: [0, 0, 0], cellWidth: 50 }, 1: { textColor: [80, 80, 80] } }
+        });
+
+        let currentY = (doc as any).lastAutoTable.finalY + 15;
+
+        const addPDFSection = (title: string, content: string) => {
+          if (!content) return;
+          if (currentY > 250) { doc.addPage(); currentY = 20; }
+          doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(0, 168, 89);
+          doc.text(title, 14, currentY); currentY += 8;
+          doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+          const splitText = doc.splitTextToSize(content, pageWidth - 28);
+          doc.text(splitText, 14, currentY); currentY += (splitText.length * 5) + 10;
+        };
+
+        if (activeTab === 'planejamento-diario') {
+          addPDFSection("Objetivos da Aula", targetData.objectives);
+          addPDFSection("Conteúdo / Atividades Planejadas", targetData.content);
+          addPDFSection("Recursos Didáticos", targetData.resources);
+          addPDFSection("Avaliação / Observações", targetData.evaluation);
+        } else if (activeTab === 'registro-mensal') {
+          addPDFSection("1. Identificação e Carga Horária", `Professor: ${targetData.professorName}\nDisciplina: ${targetData.discipline}\nUnidade: ${targetData.schoolUnit}\nTotal Aulas Dadas: ${targetData.totalAulasDadas}\nAulas Previstas: ${targetData.aulasPrevistas}\nAulas Pendentes: ${targetData.aulasPendentes}\nHoras APD: ${targetData.apdHours}`);
+          addPDFSection("2. Conteúdos e Metodologias", `Conteúdos: ${targetData.content}\nMetodologias: ${targetData.metodologias}`);
+          addPDFSection("3. Avaliações e Materiais", `Avaliações: ${targetData.evaluation}\nMateriais: ${targetData.materiaisDidaticos}`);
+          addPDFSection("4. Frequência e Comportamento", `Frequência: ${targetData.frequenciaDiaria}\nJustificativas: ${targetData.justificativasFaltas}\nComportamento: ${targetData.obsComportamento}`);
+          addPDFSection("5. Relacionamento Escola-Comunidade", `Comunicação: ${targetData.comunicacaoResponsaveis}\nConselhos: ${targetData.participacaoConselhos}\nAtividades Coletivas: ${targetData.atividadesColetivas}`);
+          addPDFSection("6. Reflexão e Desenvolvimento", `Formação: ${targetData.formacaoContinuada}\nAutoavaliação: ${targetData.autoavaliacao}\nFeedback: ${targetData.feedbackCoordenacao}`);
+        } else {
+          addPDFSection("Observações do Professor", targetData.description);
+          addPDFSection("Tom do Texto", targetData.tone);
+        }
+
+        // Footer
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+          doc.text(`EduTecPro - Gerador de Relatórios Pedagógicos • Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+        }
+
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+        doc.save(`EduTecPro_${activeItem?.label.replace(/ /g, '_')}_${new Date().getTime()}.pdf`);
+
+        // Send Email
+        await supabase.functions.invoke('sendExportEmail', {
+          body: { pdfContent: pdfBase64, format: 'pdf' }
+        });
       }
-    });
 
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    const addSection = (title: string, content: string) => {
-      if (!content) return;
-
-      // Check if we need a new page
-      if (currentY > 250) {
-        doc.addPage();
-        currentY = 20;
-      }
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(0, 168, 89);
-      doc.text(title, 14, currentY);
-      currentY += 8;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(60, 60, 60);
-
-      const splitText = doc.splitTextToSize(content, pageWidth - 28);
-      doc.text(splitText, 14, currentY);
-
-      currentY += (splitText.length * 5) + 10;
-    };
-
-    if (activeTab === 'planejamento-diario') {
-      addSection("Objetivos da Aula", formData.objectives);
-      addSection("Conteúdo / Atividades Planejadas", formData.content);
-      addSection("Recursos Didáticos", formData.resources);
-      addSection("Avaliação / Observações", formData.evaluation);
-    } else if (activeTab === 'registro-mensal') {
-      // Monthly Record Detailed PDF Sections
-      addSection("1. Identificação e Carga Horária", `Professor: ${formData.professorName}\nDisciplina: ${formData.discipline}\nUnidade: ${formData.schoolUnit}\nTotal Aulas Dadas: ${formData.totalAulasDadas}\nAulas Previstas: ${formData.aulasPrevistas}\nAulas Pendentes: ${formData.aulasPendentes}\nHoras APD: ${formData.apdHours}`);
-      addSection("2. Conteúdos e Metodologias", `Conteúdos: ${formData.content}\nMetodologias: ${formData.metodologias}`);
-      addSection("3. Avaliações e Materiais", `Avaliações: ${formData.evaluation}\nMateriais: ${formData.materiaisDidaticos}`);
-      addSection("4. Frequência e Comportamento", `Frequência: ${formData.frequenciaDiaria}\nJustificativas: ${formData.justificativasFaltas}\nComportamento: ${formData.obsComportamento}`);
-      addSection("5. Relacionamento Escola-Comunidade", `Comunicação: ${formData.comunicacaoResponsaveis}\nConselhos: ${formData.participacaoConselhos}\nAtividades Coletivas: ${formData.atividadesColetivas}`);
-      addSection("6. Reflexão e Desenvolvimento", `Formação: ${formData.formacaoContinuada}\nAutoavaliação: ${formData.autoavaliacao}\nFeedback: ${formData.feedbackCoordenacao}`);
-    } else {
-      addSection("Observações do Professor", formData.description);
-      addSection("Tom do Texto", formData.tone);
+      alert(`Documento gerado e enviado para ${userEmail} com sucesso!`);
+      setIsExportModalOpen(false);
+      setRecordForExport(null);
+    } catch (err: any) {
+      console.error("Erro na exportação:", err);
+      alert("O documento foi baixado, mas houve um erro ao enviar por e-mail: " + (err.message || "Verifique as configurações das Edge Functions."));
     }
-
-    // Footer
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text(`EduTecPro - Gerador de Relatórios Pedagógicos • Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
-    }
-
-    doc.save(`EduTecPro_${activeItem?.label.replace(/ /g, '_')}_${new Date().getTime()}.pdf`);
   };
 
   const handleDelete = (id: string) => {
@@ -1008,6 +1044,21 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
                 )}
               </>
 
+              <div className="bg-black/5 p-6 rounded-2xl space-y-4 mb-6">
+                <h4 className="text-sm font-black uppercase tracking-widest text-black/30">Configurações de Exportação</h4>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Formato de Exportação</label>
+                  <select
+                    value={formData.exportFormat}
+                    onChange={(e) => setFormData({ ...formData, exportFormat: e.target.value as 'pdf' | 'csv' })}
+                    className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white"
+                  >
+                    <option value="pdf">PDF (Documento Estruturado)</option>
+                    <option value="csv">CSV (Planilha Excel)</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button
                   type="submit"
@@ -1017,7 +1068,7 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
                 </button>
                 <button
                   type="button"
-                  onClick={generatePDF}
+                  onClick={() => handleExport()}
                   className="flex-1 py-4 bg-black text-white rounded-full font-bold hover:bg-black/80 transition-all shadow-lg"
                 >
                   Gerar Documento
@@ -1091,7 +1142,10 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
                   </div>
                   <div className="flex items-center gap-2 self-end md:self-center">
                     <button
-                      onClick={() => alert("Gerando documento... O PDF será baixado em instantes.")}
+                      onClick={() => {
+                        setRecordForExport(record);
+                        setIsExportModalOpen(true);
+                      }}
                       className="p-2.5 bg-black/5 rounded-lg text-black/40 hover:text-[#00A859] hover:bg-[#00A859]/10 transition-all"
                       title="Gerar Documento"
                     >
@@ -1144,6 +1198,78 @@ export default function Dashboard({ userId, role, userCreatedAt, userDataExpirac
           </div>
         )}
       </motion.div>
+      {/* Export Selection Modal */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl space-y-6"
+          >
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-12 h-12 bg-[#00A859]/10 rounded-2xl flex items-center justify-center text-[#00A859]">
+                <Icons.FileDown size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Exportar Registro</h3>
+                <p className="text-sm text-black/40">Escolha o formato do documento</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Formato de Exportação</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setRecordForExport(prev => prev ? { ...prev, exportFormat: 'pdf' } : null)}
+                    className={`py-4 rounded-2xl border-2 font-bold transition-all flex flex-col items-center gap-2 ${(recordForExport?.exportFormat || 'pdf') === 'pdf'
+                        ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
+                        : 'border-black/5 hover:border-black/10 text-black/40'
+                      }`}
+                  >
+                    <Icons.FileText size={20} />
+                    PDF
+                  </button>
+                  <button
+                    onClick={() => setRecordForExport(prev => prev ? { ...prev, exportFormat: 'csv' } : null)}
+                    className={`py-4 rounded-2xl border-2 font-bold transition-all flex flex-col items-center gap-2 ${recordForExport?.exportFormat === 'csv'
+                        ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
+                        : 'border-black/5 hover:border-black/10 text-black/40'
+                      }`}
+                  >
+                    <Icons.Table size={20} />
+                    CSV
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 bg-black/5 rounded-2xl">
+                <p className="text-xs text-black/40 leading-relaxed">
+                  O documento será baixado localmente e uma cópia será enviada automaticamente para seu e-mail cadastrado.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => handleExport(recordForExport)}
+                className="flex-1 py-4 bg-[#00A859] text-white rounded-full font-bold hover:bg-[#008F4C] transition-all shadow-lg shadow-[#00A859]/20"
+              >
+                Exportar agora
+              </button>
+              <button
+                onClick={() => {
+                  setIsExportModalOpen(false);
+                  setRecordForExport(null);
+                }}
+                className="flex-1 py-4 bg-black/5 text-black/60 rounded-full font-bold hover:bg-black/10 transition-all font-bold"
+              >
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -23,11 +23,11 @@ serve(async (req) => {
     // 1. Obter o token JWT do header de Authorization
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-       return new Response(JSON.stringify({ error: "Unauthorized" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
     }
 
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
+
     // Validar quem é o usuário fazendo o pedido
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
@@ -42,20 +42,25 @@ serve(async (req) => {
     const userName = profile?.nome || 'Professor(a)';
 
     if (!userEmail) {
-       return new Response(JSON.stringify({ error: "E-mail do professor não encontrado." }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });
+      return new Response(JSON.stringify({ error: "E-mail do professor não encontrado." }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });
     }
 
     const body = await req.json().catch(() => ({}));
-    const { csvContent } = body;
+    const { csvContent, pdfContent, format } = body;
 
-    if (!csvContent) {
-       return new Response(JSON.stringify({ error: "Nenhum dado pedagógico fornecido para exportação." }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });
+    if (!csvContent && !pdfContent) {
+      return new Response(JSON.stringify({ error: "Nenhum dado pedagógico fornecido para exportação." }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });
     }
+
+    const extension = format === 'pdf' ? 'pdf' : 'csv';
+    const filename = `registros_pedagogicos_export.${extension}`;
+    const fileContent = format === 'pdf' ? pdfContent : csvContent;
 
     let attachments = [
       {
-        filename: 'registros_pedagogicos_export.csv',
-        content: csvContent,
+        filename: filename,
+        content: fileContent,
+        encoding: format === 'pdf' ? 'base64' : undefined
       }
     ];
 
@@ -69,18 +74,18 @@ serve(async (req) => {
     });
 
     const mailOptions = {
-        from: `"EduTecPro" <${EMAIL_USER}>`,
-        to: userEmail,
-        subject: 'EduTecPro: Backup dos seus Dados Pedagógicos',
-        text: `Olá ${userName},\n\nConforme solicitado, segue em anexo a exportação dos seus registros pedagógicos em formato CSV.\n\nAtenciosamente,\nEquipe EduTecPro`,
-        attachments: attachments,
+      from: `"EduTecPro" <${EMAIL_USER}>`,
+      to: userEmail,
+      subject: `EduTecPro: Exportação de seus Dados Pedagógicos (${extension.toUpperCase()})`,
+      text: `Olá ${userName},\n\nConforme solicitado, segue em anexo a exportação dos seus registros pedagógicos em formato ${extension.toUpperCase()}.\n\nAtenciosamente,\nEquipe EduTecPro`,
+      attachments: attachments,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`E-mail com backup enviado com sucesso para ${userEmail}`);
+    console.log(`E-mail com exportação enviado com sucesso para ${userEmail}`);
 
     return new Response(
-      JSON.stringify({ message: "Dados exportados e enviados para o seu e-mail com sucesso!" }),
+      JSON.stringify({ message: `Dados exportados em ${extension.toUpperCase()} e enviados para o seu e-mail com sucesso!` }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
 

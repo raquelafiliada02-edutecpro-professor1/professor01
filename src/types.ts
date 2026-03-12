@@ -57,6 +57,7 @@ export interface PedagogicalRecord {
   formacaoContinuada?: string;
   autoavaliacao?: string;
   feedbackCoordenacao?: string;
+  exportFormat?: 'pdf' | 'csv';
 }
 
 export const NAV_ITEMS: NavItem[] = [
