@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { UserProfile, NavItem } from '../../types';
@@ -7,9 +8,24 @@ interface HeaderProps {
     role: UserProfile;
     activeItem?: NavItem;
     setIsSidebarOpen: (isOpen: boolean) => void;
+    userDataExpiracao?: string | null;
+    statusPagamento?: string | null;
 }
 
-export default function Header({ role, activeItem, setIsSidebarOpen }: HeaderProps) {
+export default function Header({ role, activeItem, setIsSidebarOpen, userDataExpiracao, statusPagamento }: HeaderProps) {
+    const getDaysRemaining = () => {
+        if (!userDataExpiracao) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const expDate = new Date(userDataExpiracao);
+        expDate.setHours(0, 0, 0, 0);
+        const diffTime = expDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
+    const daysLeft = getDaysRemaining();
+
     return (
         <header className="h-20 bg-white border-b border-black/5 px-4 md:px-8 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-4">
@@ -43,6 +59,15 @@ export default function Header({ role, activeItem, setIsSidebarOpen }: HeaderPro
                                     )}>
                                         {role === 'pro' ? 'CONTA PRO' : 'CONTA FREE'}
                                     </span>
+                                    {statusPagamento === 'trial' && daysLeft !== null && (
+                                        <motion.span 
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="px-2 py-0.5 rounded text-[10px] font-black mt-1 bg-amber-100 text-amber-700 border border-amber-200"
+                                        >
+                                            {daysLeft} {daysLeft === 1 ? 'DIA RESTANTE' : 'DIAS RESTANTES'}
+                                        </motion.span>
+                                    )}
                                 </span>
                             )}
                         </p>

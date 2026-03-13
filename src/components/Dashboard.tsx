@@ -18,11 +18,21 @@ interface DashboardProps {
   role: UserProfile;
   userCreatedAt?: string | null;
   userDataExpiracao?: string | null;
+  statusPagamento?: string | null;
   onLogout: () => void;
   onGoToPayment: () => void;
 }
 
-export default function Dashboard({ userId, userEmail, role, userCreatedAt, userDataExpiracao, onLogout, onGoToPayment }: DashboardProps) {
+export default function Dashboard({ 
+  userId, 
+  userEmail, 
+  role, 
+  userCreatedAt, 
+  userDataExpiracao, 
+  statusPagamento,
+  onLogout, 
+  onGoToPayment 
+}: DashboardProps) {
   // Initialize with a valid tab for the role or the first one if unsure
   const getInitialTab = () => {
     const authorizedTabs = NAV_ITEMS.filter(item => item.roles.includes(role as any));
@@ -494,6 +504,8 @@ export default function Dashboard({ userId, userEmail, role, userCreatedAt, user
       setActiveTab={setActiveTab}
       onLogout={onLogout}
       onGoToPayment={onGoToPayment}
+      userDataExpiracao={userDataExpiracao}
+      statusPagamento={statusPagamento}
     >
       <motion.div
         key={activeTab + (isFormOpen ? '-form' : '-list')}

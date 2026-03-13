@@ -9,6 +9,8 @@ interface DashboardLayoutProps {
     setActiveTab: (tab: string) => void;
     onLogout: () => void;
     onGoToPayment: () => void;
+    userDataExpiracao?: string | null;
+    statusPagamento?: string | null;
     children: React.ReactNode;
 }
 
@@ -18,6 +20,8 @@ export default function DashboardLayout({
     setActiveTab,
     onLogout,
     onGoToPayment,
+    userDataExpiracao,
+    statusPagamento,
     children
 }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -39,6 +43,8 @@ export default function DashboardLayout({
                     role={role}
                     activeItem={activeItem}
                     setIsSidebarOpen={setIsSidebarOpen}
+                    userDataExpiracao={userDataExpiracao}
+                    statusPagamento={statusPagamento}
                 />
                 <div className="flex-1 overflow-y-scroll p-4 md:p-8 custom-scrollbar">
                     {children}

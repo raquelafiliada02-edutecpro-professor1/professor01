@@ -176,15 +176,21 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
               EduTecPro — A revolução na <br className="hidden md:block" />
               <span className="text-[#00A859]">gestão pedagógica</span>.
             </h1>
-            <p className="text-lg md:text-xl text-black/60 max-w-lg mx-auto md:mx-0 mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-black/60 max-w-lg mx-auto md:mx-0 mb-6 leading-relaxed">
               Soluções inteligentes para professores individuais. Organize sua rotina, produza relatórios e tenha mais tempo para focar nos seus alunos.
             </p>
+            <div className="bg-[#00A859]/5 border border-[#00A859]/20 p-4 rounded-2xl mb-8 flex items-center gap-3">
+              <Sparkles size={20} className="text-[#00A859] shrink-0" />
+              <p className="text-sm font-medium text-[#00A859]">
+                Experimente o <span className="font-bold">Plano Pro gratuitamente por 7 dias</span> agora mesmo.
+              </p>
+            </div>
             <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
               <button
                 onClick={() => setSelectedPlanView('pro')}
                 className="w-full sm:w-auto px-8 py-4 bg-[#00A859] text-white rounded-full font-semibold hover:bg-[#008F4C] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#00A859]/20"
               >
-                Começar agora
+                Experimentar agora
                 <ChevronRight size={20} />
               </button>
               <button
@@ -202,70 +208,55 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative h-[400px] md:h-[500px] w-full"
+            className="relative h-[400px] md:h-[500px] w-full flex items-center justify-center pt-8 md:pt-0"
           >
             {/* Background glowing orb */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#00A859]/30 rounded-full blur-[80px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#00A859]/20 rounded-full blur-[100px]" />
 
-            {/* Main Mockup Card */}
+            {/* Dashboard Image Container */}
             <motion.div
               animate={{ y: [-10, 10, -10] }}
               transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-              className="absolute inset-0 m-auto w-[90%] md:w-[80%] h-[80%] bg-white/40 backdrop-blur-xl border border-white/60 rounded-[32px] shadow-2xl p-6 flex flex-col"
+              className="relative z-10 w-full max-w-[550px]"
             >
-              {/* Mock Bar */}
-              <div className="flex items-center gap-2 mb-6 border-b border-black/5 pb-4">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
-                <div className="ml-4 h-6 w-32 bg-white/50 rounded-md" />
+              <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-[32px] shadow-2xl overflow-hidden p-2">
+                <img 
+                  src="/assets/dashboard-pro.png" 
+                  alt="Dashboard EduTecPro" 
+                  className="w-full h-auto rounded-[24px] shadow-lg"
+                />
               </div>
-
-              {/* Mock Content */}
-              <div className="flex-1 flex gap-4">
-                {/* Sidebar Mock */}
-                <div className="w-1/4 h-full bg-white/30 rounded-2xl flex flex-col gap-3 p-3">
-                  <div className="w-full h-8 bg-white/50 rounded-lg" />
-                  <div className="w-full h-8 bg-[#00A859]/20 rounded-lg" />
-                  <div className="w-full h-8 bg-white/50 rounded-lg" />
-                  <div className="w-full h-8 bg-white/50 rounded-lg" />
+              
+              {/* Floating badges for extra premium feel */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1 }}
+                className="absolute -right-4 -top-4 bg-white p-4 rounded-2xl shadow-xl border border-black/5 flex items-center gap-3 hidden md:flex"
+              >
+                <div className="w-10 h-10 bg-[#00A859]/10 rounded-xl flex items-center justify-center text-[#00A859]">
+                  <LayoutDashboard size={20} />
                 </div>
-                {/* Main Area Mock */}
-                <div className="flex-1 flex flex-col gap-4">
-                  <div className="h-24 w-full bg-gradient-to-r from-[#00A859]/20 to-[#00A859]/5 rounded-2xl p-4 flex flex-col justify-center">
-                    <div className="w-1/3 h-4 bg-[#00A859]/40 rounded-full mb-2" />
-                    <div className="w-1/4 h-6 bg-[#00A859]/60 rounded-full" />
-                  </div>
-                  <div className="flex-1 bg-white/30 rounded-2xl p-4 space-y-3">
-                    <div className="w-full h-12 bg-white/50 text-transparent border border-white/40 rounded-xl" />
-                    <div className="w-full h-12 bg-white/50 border border-white/40 rounded-xl" />
-                    <div className="w-full h-12 bg-white/50 border border-white/40 rounded-xl" />
-                  </div>
+                <div>
+                  <p className="text-[10px] text-black/40 font-bold uppercase tracking-wider">Interface</p>
+                  <p className="text-sm font-bold">Moderna & Intuitiva</p>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
 
-            {/* Floating Element 1 */}
-            <motion.div
-              animate={{ y: [0, -15, 0] }}
-              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 1 }}
-              className="absolute -right-4 md:-right-8 top-12 md:top-24 w-32 h-32 bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl shadow-xl flex items-center justify-center text-[#00A859]"
-            >
-              <FileDown size={48} strokeWidth={1.5} />
-            </motion.div>
-
-            {/* Floating Element 2 */}
-            <motion.div
-              animate={{ y: [0, 15, 0] }}
-              transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 2 }}
-              className="absolute -left-4 md:-left-8 bottom-12 md:bottom-24 w-40 p-4 bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl shadow-xl space-y-2"
-            >
-              <div className="flex items-center gap-2 text-[#00A859] font-bold text-sm">
-                <Sparkles size={16} />
-                Parecer IA
-              </div>
-              <div className="w-full h-2 bg-black/5 rounded-full" />
-              <div className="w-2/3 h-2 bg-black/5 rounded-full" />
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.2 }}
+                className="absolute -left-6 -bottom-6 bg-white p-4 rounded-2xl shadow-xl border border-black/5 flex items-center gap-3 hidden md:flex"
+              >
+                <div className="w-10 h-10 bg-[#00A859]/10 rounded-xl flex items-center justify-center text-[#00A859]">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] text-black/40 font-bold uppercase tracking-wider">Resultados</p>
+                  <p className="text-sm font-bold">100% Pedagógicos</p>
+                </div>
+              </motion.div>
             </motion.div>
           </motion.div>
         </div>
@@ -301,7 +292,7 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto mb-16 md:mb-20">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Escolha seu plano</h2>
-            <p className="text-black/60">Comece grátis ou turbine sua produtividade com o Pro.</p>
+            <p className="text-black/60">Experimente o Pro grátis por 7 dias ou comece com o Free.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
             {/* Plano Free */}
@@ -371,7 +362,7 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
                 onClick={handleUpgradeClick}
                 className="w-full py-3.5 md:py-4 bg-[#00A859] text-white rounded-full font-semibold hover:bg-[#008F4C] transition-all shadow-lg shadow-[#00A859]/20"
               >
-                Assinar Pro
+                Experimentar Pro Grátis
               </button>
             </div>
           </div>

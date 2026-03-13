@@ -20,11 +20,42 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
     const [cardNumber, setCardNumber] = useState('');
     const [expiry, setExpiry] = useState('');
     const [cvc, setCvc] = useState('');
-    const [name, setName] = useState('');
+    const [name, setCardName] = useState('');
 
     // Account form fields for non-authenticated users
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
+    const [installments, setInstallments] = useState(1);
+    const [isDowngrading, setIsDowngrading] = useState(false);
+
+    const handleDowngradeToFree = async () => {
+        setIsDowngrading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                onBack();
+                return;
+            }
+
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    plano: 'free',
+                    status_pagamento: 'pendente'
+                })
+                .eq('id', session.user.id);
+
+            if (error) throw error;
+
+            onSuccess('free');
+        } catch (err) {
+            console.error('Downgrade error:', err);
+            alert('Erro ao processar alteração de plano.');
+        } finally {
+            setIsDowngrading(false);
+        }
+    };
 
     const handlePayment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -107,9 +138,7 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
                     plano: 'pro',
                     data_expiracao: expirationDate.toISOString().split('T')[0] // Format as YYYY-MM-DD
                 })
-                .eq('id', activeUserId)
-                .select('id, nome, email, plano, status_pagamento, data_expiracao')
-                .single();
+                .eq('id', activeUserId);
 
             if (error) throw error;
 
@@ -304,10 +333,25 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
                                             type="text"
                                             required
                                             value={name}
-                                            onChange={(e) => setName(e.target.value.toUpperCase())}
+                                            onChange={(e) => setCardName(e.target.value.toUpperCase())}
                                             placeholder="COMO IMPRESSO NO CARTÃO"
                                             className="w-full px-5 py-4 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all uppercase"
                                         />
+                                    </div>
+
+                                    {/* Installments Selector */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Parcelamento</label>
+                                        <select
+                                            value={installments}
+                                            onChange={(e) => setInstallments(Number(e.target.value))}
+                                            className="w-full px-5 py-4 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white"
+                                        >
+                                            <option value={1}>1x de R$ 29,90 (À vista)</option>
+                                            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                                <option key={n} value={n}>{n}x de R$ 29,90 (Sem juros)</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </motion.div>
                             ) : (
@@ -386,11 +430,23 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
                                 </div>
                             </div>
 
-                            <div className="flex items-end justify-between">
+                             <div className="flex items-end justify-between">
                                 <p className="text-white/60">Total a pagar hoje</p>
                                 <p className="text-4xl font-bold">
-                                    R$ 29,90
+                                    {paymentMethod === 'credit_card' ? `R$ ${(29.9 * installments).toFixed(2).replace('.', ',')}` : 'R$ 29,90'}
                                 </p>
+                            </div>
+
+                            {/* Downgrade Option */}
+                            <div className="mt-12 pt-12 border-t border-white/10">
+                                <p className="text-white/40 text-sm mb-4">Não quer assinar o Pro agora?</p>
+                                <button
+                                    onClick={handleDowngradeToFree}
+                                    disabled={isDowngrading}
+                                    className="w-full py-4 border border-white/10 rounded-full text-white/60 text-sm font-semibold hover:bg-white/5 hover:text-white transition-all disabled:opacity-50"
+                                >
+                                    {isDowngrading ? 'Processando...' : 'Continuar com Plano Free'}
+                                </button>
                             </div>
                         </div>
                     </div>

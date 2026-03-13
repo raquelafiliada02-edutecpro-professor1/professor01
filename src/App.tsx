@@ -18,6 +18,7 @@ export default function App() {
 
   const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
   const [userDataExpiracao, setUserDataExpiracao] = useState<string | null>(null);
+  const [userStatusPagamento, setUserStatusPagamento] = useState<string | null>(null);
 
   const fetchUserProfile = async (userId: string) => {
     setIsInitializing(true);
@@ -46,15 +47,31 @@ export default function App() {
         setCurrentProfile(matchedPlano);
         setUserCreatedAt(data.created_at);
         setUserDataExpiracao(data.data_expiracao);
+        setUserStatusPagamento(data.status_pagamento);
 
-        if (matchedPlano === 'pro' && data.status_pagamento !== 'ativo' && data.status_pagamento !== 'aprovado') {
-          if (intendedViewRef.current) {
-            setView(intendedViewRef.current);
-            intendedViewRef.current = null;
-          } else {
+        const today = new Date().toISOString().split('T')[0];
+        const isExpired = data.data_expiracao && data.data_expiracao < today;
+
+        if (matchedPlano === 'pro') {
+          const isPaid = data.status_pagamento === 'ativo' || data.status_pagamento === 'aprovado';
+          
+          if (!isPaid && isExpired) {
+            // Trial or regular plan expired and not paid
             setView('payment');
+          } else if (!isPaid && data.status_pagamento !== 'trial' && data.status_pagamento !== 'pendente') {
+            // Fallback for other unpaid statuses
+            setView('payment');
+          } else {
+            // Still in trial or paid
+            if (intendedViewRef.current) {
+              setView(intendedViewRef.current);
+              intendedViewRef.current = null;
+            } else {
+              setView('dashboard');
+            }
           }
         } else {
+          // Free plan
           if (intendedViewRef.current) {
             setView(intendedViewRef.current);
             intendedViewRef.current = null;
@@ -174,6 +191,7 @@ export default function App() {
       onGoToPayment={handleGoToPayment}
       userCreatedAt={userCreatedAt}
       userDataExpiracao={userDataExpiracao}
+      statusPagamento={userStatusPagamento}
     />
   );
 }

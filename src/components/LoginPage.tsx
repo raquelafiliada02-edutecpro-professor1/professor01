@@ -65,17 +65,20 @@ export default function LoginPage({ onLogin, onBack }: LoginPageProps) {
           setError("Este email já está cadastrado. Faça login.");
           setIsLoginMode(true);
         } else if (data.user) {
-          // Sync with public.users table automatically
+          // Sync with public.users table automatically with 7-day PRO trial
+          const trialExpiration = new Date();
+          trialExpiration.setDate(trialExpiration.getDate() + 7);
+
           const { error: upsertError } = await supabase
             .from('users')
             .upsert({
               id: data.user.id,
-              nome: name || email.split('@')[0], // fallback to email prefix if name is empty
+              nome: name || email.split('@')[0],
               email: email,
-              senha: 'auth_managed_by_supabase', // Necessário devido à constraint NOT NULL
-              plano: 'free',
-              status_pagamento: 'pendente',
-              data_expiracao: new Date().toISOString().split('T')[0], // Formato Date do Postgres
+              senha: 'auth_managed_by_supabase',
+              plano: 'pro',
+              status_pagamento: 'trial',
+              data_expiracao: trialExpiration.toISOString().split('T')[0],
               created_at: new Date().toISOString()
             }, {
               onConflict: 'id'
