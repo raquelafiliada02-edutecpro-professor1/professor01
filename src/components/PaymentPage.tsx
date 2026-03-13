@@ -232,323 +232,341 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
     };
 
     return (
-        <div className="min-h-screen bg-[#FDFCFB] text-[#1A1A1A] font-sans flex flex-col items-center justify-center p-6">
-            <button
-                onClick={onBack}
-                className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center gap-2 text-black/40 hover:text-black transition-colors"
-            >
-                <ArrowLeft size={20} />
-                Voltar
-            </button>
+        <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans flex flex-col items-center py-12 px-6">
+            <div className="w-full max-w-5xl mb-8 flex justify-between items-center">
+                <button
+                    onClick={onBack}
+                    className="flex items-center gap-2 text-black/40 hover:text-black transition-colors font-medium text-sm"
+                >
+                    <ArrowLeft size={18} />
+                    Voltar
+                </button>
+            </div>
 
-            <div className="w-full max-w-4xl grid lg:grid-cols-2 gap-8 lg:gap-16">
+            <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-8 items-start">
 
                 {/* Left Column - Form */}
-                <div className="bg-white rounded-[32px] p-8 md:p-12 shadow-xl border border-black/5 relative overflow-hidden">
-                    <AnimatePresence>
-                        {showSuccess && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center text-center p-8"
-                            >
+                <div className="lg:col-span-7 space-y-6">
+                    <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-black/[0.03] relative overflow-hidden">
+                        <AnimatePresence>
+                            {showSuccess && (
                                 <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ type: "spring", delay: 0.2 }}
-                                    className="w-24 h-24 bg-[#00A859]/10 rounded-full flex items-center justify-center text-[#00A859] mb-6"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center text-center p-8"
                                 >
-                                    <CheckCircle2 size={48} />
-                                </motion.div>
-                                <h3 className="text-3xl font-bold mb-4">Pagamento Aprovado!</h3>
-                                <p className="text-black/60 text-lg mb-8">
-                                    Sua conta PRO foi ativada. Bem-vindo ao próximo nível da gestão pedagógica, {userEmail}!
-                                </p>
-                                <div className="flex items-center gap-2 text-[#00A859] font-medium">
-                                    <Loader2 className="animate-spin" size={20} />
-                                    Redirecionando para o seu Dashboard...
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    <div className="mb-10">
-                        <h2 className="text-3xl font-bold tracking-tight mb-2">Assinar Plano Pro</h2>
-                        <p className="text-black/60">Sua conta completa para gestão escolar</p>
-                    </div>
-
-                    <div className="space-y-8">
-                        {/* User Account Info Container - NOW AT TOP */}
-                        <div className="space-y-5 bg-black/5 p-6 rounded-3xl border border-black/10">
-                            <h3 className="font-bold text-black/80 flex items-center gap-2">
-                                <ShieldCheck size={20} className="text-[#00A859]" />
-                                Seus Dados de Acesso
-                            </h3>
-                            {userEmail ? (
-                                <p className="text-black/60 text-sm">
-                                    A assinatura será vinculada à conta: <strong className="text-black">{userEmail}</strong>.
-                                </p>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Seu E-mail</label>
-                                        <input
-                                            type="email"
-                                            required
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="exemplo@email.com"
-                                            className="w-full px-5 py-4 bg-white rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Crie uma Senha</label>
-                                        <input
-                                            type="password"
-                                            required
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="••••••••"
-                                            minLength={6}
-                                            className="w-full px-5 py-4 bg-white rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
-                                        />
-                                        <p className="text-[10px] text-black/40 mt-1 font-medium">No mínimo 6 caracteres</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Trial Button Section */}
-                        <div className="bg-[#00A859]/5 border-2 border-[#00A859]/20 rounded-3xl p-6 md:p-8 text-center space-y-4">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#00A859] text-white text-[10px] font-black uppercase tracking-widest rounded-full">
-                                <Gift size={12} />
-                                Oferta Especial
-                            </div>
-                            <h3 className="text-xl font-bold text-[#00A859]">Acesso Gratuito por 7 Dias</h3>
-                            <p className="text-sm text-black/60 max-w-sm mx-auto">
-                                Experimente todas as funcionalidades do Plano Pro sem pagar nada agora. Após o teste, você escolhe como continuar.
-                            </p>
-                            <button
-                                type="button"
-                                onClick={handleStartTrial}
-                                disabled={isProcessing}
-                                className="w-full py-5 bg-[#00A859] text-white rounded-full font-bold text-lg hover:bg-[#008F4C] transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#00A859]/20"
-                            >
-                                {isProcessing ? <Loader2 className="animate-spin" /> : <><Zap size={20} /> Experimentar GRÁTIS por 7 dias</>}
-                            </button>
-                        </div>
-
-                        <div className="relative py-4">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-black/10"></div>
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-4 text-black/40 font-bold tracking-widest">Ou escolha o método de pagamento</span>
-                            </div>
-                        </div>
-
-                        {/* Payment Method Selector */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setPaymentMethod('credit_card')}
-                                className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${paymentMethod === 'credit_card'
-                                    ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
-                                    : 'border-black/5 bg-transparent text-black/60 hover:border-black/10'
-                                    }`}
-                            >
-                                <CreditCard size={28} />
-                                <span className="font-semibold text-sm">Cartão de Crédito</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPaymentMethod('pix')}
-                                className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${paymentMethod === 'pix'
-                                    ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
-                                    : 'border-black/5 bg-transparent text-black/60 hover:border-black/10'
-                                    }`}
-                            >
-                                <QrCode size={28} />
-                                <span className="font-semibold text-sm">Pagar com PIX</span>
-                            </button>
-                        </div>
-
-                        <form onSubmit={handlePayment} className="space-y-8">
-
-                        {/* Credit Card Form (Simulated) */}
-                        <AnimatePresence mode="wait">
-                            {paymentMethod === 'credit_card' ? (
-                                <motion.div
-                                    key="credit_card"
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="space-y-5"
-                                >
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Número do Cartão</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={cardNumber}
-                                            onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim())}
-                                            maxLength={19}
-                                            placeholder="0000 0000 0000 0000"
-                                            className="w-full px-5 py-4 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all font-mono text-lg"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-5">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Validade</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                value={expiry}
-                                                onChange={(e) => setExpiry(e.target.value.replace(/\D/g, '').replace(/(\d{2})(\d{2})/, '$1/$2').substr(0, 5))}
-                                                placeholder="MM/AA"
-                                                className="w-full px-5 py-4 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold text-black/60 uppercase tracking-wider">CVC</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                value={cvc}
-                                                onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').substr(0, 4))}
-                                                placeholder="123"
-                                                className="w-full px-5 py-4 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Nome no Cartão</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={name}
-                                            onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                                            placeholder="COMO IMPRESSO NO CARTÃO"
-                                            className="w-full px-5 py-4 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all uppercase"
-                                        />
-                                    </div>
-
-                                    {/* Installments Selector */}
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Parcelamento</label>
-                                        <select
-                                            value={installments}
-                                            onChange={(e) => setInstallments(Number(e.target.value))}
-                                            className="w-full px-5 py-4 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white"
-                                        >
-                                            <option value={1}>1x de R$ 29,90 (Mensal)</option>
-                                            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                                                <option key={n} value={n}>{n}x de R$ 29,90 (Sem juros)</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="pix"
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="bg-[#00A859]/5 border border-[#00A859]/20 rounded-2xl p-6 text-center space-y-4"
-                                >
-                                    <div className="bg-white p-4 rounded-xl inline-block border border-black/5 shadow-sm">
-                                        {/* Simulated QR Code */}
-                                        <QrCode size={120} className="text-[#00A859]" />
-                                    </div>
-                                    <p className="text-sm text-black/60">
-                                        Escaneie o código acima com o aplicativo do seu banco para finalizar a compra de 30 dias de acesso.
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ type: "spring", delay: 0.2 }}
+                                        className="w-20 h-20 bg-[#00A859]/10 rounded-full flex items-center justify-center text-[#00A859] mb-6"
+                                    >
+                                        <CheckCircle2 size={40} />
+                                    </motion.div>
+                                    <h3 className="text-2xl font-bold mb-3">Pagamento Aprovado!</h3>
+                                    <p className="text-black/60 mb-8 max-w-xs">
+                                        Sua conta PRO foi ativada. Bem-vindo ao próximo nível da gestão pedagógica!
                                     </p>
+                                    <div className="flex items-center gap-2 text-[#00A859] font-medium text-sm">
+                                        <Loader2 className="animate-spin" size={18} />
+                                        Redirecionando...
+                                    </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
-                        <button
-                            type="submit"
-                            disabled={isProcessing}
-                            className={`w-full py-5 text-white rounded-full font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-xl ${isProcessing
-                                ? 'bg-black/20 cursor-not-allowed shadow-none'
-                                : 'bg-[#00A859] hover:bg-[#008F4C] shadow-[#00A859]/30'
-                                }`}
-                        >
-                            {isProcessing ? (
-                                <>
-                                    <Loader2 className="animate-spin" size={24} />
-                                    Processando...
-                                </>
-                            ) : (
-                                <>
-                                    Confirmar Pagamento
-                                </>
-                            )}
-                        </button>
-
-                        <div className="flex items-center justify-center gap-2 text-black/40 text-sm">
-                            <ShieldCheck size={16} />
-                            Ambiente 100% seguro Banco Central.
+                        <div className="mb-10">
+                            <h2 className="text-2xl font-bold tracking-tight mb-2">Configure sua Assinatura</h2>
+                            <p className="text-black/40 text-sm">Preencha os dados abaixo para ativar o Plano Pro.</p>
                         </div>
-                    </form>
+
+                        <div className="space-y-10">
+                            {/* 1. Seus Dados de Acesso */}
+                            <section className="space-y-6">
+                                <div className="flex items-center gap-3 border-b border-black/[0.03] pb-4">
+                                    <div className="w-8 h-8 bg-black/5 rounded-lg flex items-center justify-center text-black/60">
+                                        <ShieldCheck size={18} />
+                                    </div>
+                                    <h3 className="font-bold text-lg text-black/80">1. Seus Dados de Acesso</h3>
+                                </div>
+                                
+                                {userEmail ? (
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-black/[0.03]">
+                                        <p className="text-black/50 text-sm">
+                                            Logado como: <span className="text-black font-semibold">{userEmail}</span>
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-black/40 ml-1">E-mail</label>
+                                            <input
+                                                type="email"
+                                                required
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="seu@email.com"
+                                                className="w-full px-5 py-4 bg-[#F9FAFB] rounded-xl border border-black/[0.05] focus:bg-white focus:border-[#00A859] focus:ring-4 focus:ring-[#00A859]/5 outline-none transition-all text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-black/40 ml-1">Senha</label>
+                                            <input
+                                                type="password"
+                                                required
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                placeholder="Mínimo 6 caracteres"
+                                                minLength={6}
+                                                className="w-full px-5 py-4 bg-[#F9FAFB] rounded-xl border border-black/[0.05] focus:bg-white focus:border-[#00A859] focus:ring-4 focus:ring-[#00A859]/5 outline-none transition-all text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </section>
+
+                            {/* 2. Oferta de Teste */}
+                            <section className="space-y-6">
+                                <div className="flex items-center gap-3 border-b border-black/[0.03] pb-4">
+                                    <div className="w-8 h-8 bg-[#00A859]/10 rounded-lg flex items-center justify-center text-[#00A859]">
+                                        <Clock size={18} />
+                                    </div>
+                                    <h3 className="font-bold text-lg text-black/80">2. Experimente Grátis</h3>
+                                </div>
+
+                                <div className="bg-[#00A859]/[0.02] border border-[#00A859]/10 rounded-3xl p-6 md:p-8 relative overflow-hidden">
+                                    <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                                        <div className="flex-1 text-center md:text-left">
+                                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#00A859] text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3">
+                                                <Zap size={10} fill="currentColor" />
+                                                7 Dias de Teste
+                                            </div>
+                                            <h4 className="text-xl font-bold text-black mb-2">Começar sem pagar nada hoje</h4>
+                                            <p className="text-sm text-black/50 leading-relaxed">
+                                                Tenha acesso ilimitado a todas as ferramentas Pro. Se não gostar, cancele em um clique.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleStartTrial}
+                                            disabled={isProcessing}
+                                            className="w-full md:w-auto px-8 py-4 bg-[#00A859] text-white rounded-xl font-bold text-base hover:bg-[#008F4C] transition-all shadow-lg shadow-[#00A859]/20 flex items-center justify-center gap-2"
+                                        >
+                                            {isProcessing ? <Loader2 className="animate-spin" size={20} /> : "Ativar Teste Grátis"}
+                                        </button>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* 3. Pagamento Direto */}
+                            <section className="space-y-6">
+                                <div className="flex items-center gap-3 border-b border-black/[0.03] pb-4">
+                                    <div className="w-8 h-8 bg-black/5 rounded-lg flex items-center justify-center text-black/60">
+                                        <CreditCard size={18} />
+                                    </div>
+                                    <h3 className="font-bold text-lg text-black/80">3. Ou finalize sua assinatura</h3>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMethod('credit_card')}
+                                        className={`py-4 rounded-xl border flex items-center justify-center gap-3 transition-all ${paymentMethod === 'credit_card'
+                                            ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859] shadow-sm'
+                                            : 'border-black/[0.05] bg-white text-black/40 hover:border-black/10'
+                                            }`}
+                                    >
+                                        <CreditCard size={18} />
+                                        <span className="font-bold text-xs uppercase tracking-wider">Cartão de Crédito</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMethod('pix')}
+                                        className={`py-4 rounded-xl border flex items-center justify-center gap-3 transition-all ${paymentMethod === 'pix'
+                                            ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859] shadow-sm'
+                                            : 'border-black/[0.05] bg-white text-black/40 hover:border-black/10'
+                                            }`}
+                                    >
+                                        <QrCode size={18} />
+                                        <span className="font-bold text-xs uppercase tracking-wider">Pix Instantâneo</span>
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handlePayment} className="space-y-6">
+                                    <AnimatePresence mode="wait">
+                                        {paymentMethod === 'credit_card' ? (
+                                            <motion.div
+                                                key="credit_card"
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                            >
+                                                <div className="md:col-span-2 space-y-2">
+                                                    <label className="text-[11px] font-bold uppercase tracking-wider text-black/40 ml-1">Número do Cartão</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        value={cardNumber}
+                                                        onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim())}
+                                                        maxLength={19}
+                                                        placeholder="0000 0000 0000 0000"
+                                                        className="w-full px-5 py-4 bg-[#F9FAFB] rounded-xl border border-black/[0.05] focus:bg-white focus:border-[#00A859] outline-none transition-all text-sm font-mono"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[11px] font-bold uppercase tracking-wider text-black/40 ml-1">Validade (MM/AA)</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        value={expiry}
+                                                        onChange={(e) => setExpiry(e.target.value.replace(/\D/g, '').replace(/(\d{2})(\d{2})/, '$1/$2').substr(0, 5))}
+                                                        placeholder="12/28"
+                                                        className="w-full px-5 py-4 bg-[#F9FAFB] rounded-xl border border-black/[0.05] focus:bg-white focus:border-[#00A859] outline-none transition-all text-sm"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[11px] font-bold uppercase tracking-wider text-black/40 ml-1">CVC</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        value={cvc}
+                                                        onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').substr(0, 4))}
+                                                        placeholder="123"
+                                                        className="w-full px-5 py-4 bg-[#F9FAFB] rounded-xl border border-black/[0.05] focus:bg-white focus:border-[#00A859] outline-none transition-all text-sm"
+                                                    />
+                                                </div>
+                                                <div className="md:col-span-2 space-y-2">
+                                                    <label className="text-[11px] font-bold uppercase tracking-wider text-black/40 ml-1">Parcelamento</label>
+                                                    <select
+                                                        value={installments}
+                                                        onChange={(e) => setInstallments(Number(e.target.value))}
+                                                        className="w-full px-5 py-4 bg-[#F9FAFB] rounded-xl border border-black/[0.05] focus:bg-white focus:border-[#00A859] outline-none transition-all text-sm cursor-pointer"
+                                                    >
+                                                        <option value={1}>1x de R$ 29,90/mês</option>
+                                                        {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                                            <option key={n} value={n}>{n}x de R$ 29,90 (Sem juros)</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </motion.div>
+                                        ) : (
+                                            <motion.div
+                                                key="pix"
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                className="bg-gray-50 border border-black/[0.03] rounded-2xl p-6 text-center"
+                                            >
+                                                <div className="bg-white p-4 rounded-xl inline-block border border-black/[0.05] shadow-sm mb-4">
+                                                    <QrCode size={120} className="text-[#00A859]" />
+                                                </div>
+                                                <h5 className="font-bold text-black mb-1">Pagamento via Pix</h5>
+                                                <p className="text-xs text-black/40 mb-4 px-8">
+                                                    A liberação é imediata. Aponte a câmera ou use o código Pix Copia e Cola.
+                                                </p>
+                                                <button 
+                                                    type="button"
+                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-black/[0.05] rounded-full text-[11px] font-bold uppercase tracking-wider text-black/60 hover:text-black hover:border-black/20 transition-all"
+                                                    onClick={() => navigator.clipboard.writeText('chave-pix-fake-123')}
+                                                >
+                                                    Copiar Código Pix
+                                                </button>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isProcessing}
+                                        className={`w-full py-5 text-white rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg ${isProcessing
+                                            ? 'bg-black/20 cursor-not-allowed shadow-none'
+                                            : 'bg-[#1A1A1A] hover:bg-black shadow-black/10 transform active:scale-[0.98]'
+                                            }`}
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <Loader2 className="animate-spin" size={20} />
+                                                Processando...
+                                            </>
+                                        ) : (
+                                            "Finalizar Assinatura"
+                                        )}
+                                    </button>
+
+                                    <p className="text-center text-[11px] text-black/30 font-medium flex items-center justify-center gap-1.5 uppercase tracking-widest">
+                                        <ShieldCheck size={14} /> Pagamento 100% criptografado e seguro
+                                    </p>
+                                </form>
+                            </section>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {/* Right Column - Order Summary */}
-            <div className="flex flex-col justify-center">
-                <div className="bg-[#1A1A1A] text-white rounded-[32px] p-8 md:p-12 shadow-2xl relative overflow-hidden">
-                    <div className="absolute -top-32 -right-32 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-                    <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#00A859]/20 rounded-full blur-3xl" />
-
-                    <div className="relative z-10">
-                        <div className="inline-flex items-center justify-center w-12 h-12 bg-white/10 rounded-xl mb-8">
-                            <Star size={24} className="text-yellow-400 fill-yellow-400" />
-                        </div>
-
-                        <h3 className="text-3xl font-bold mb-8">Resumo da Assinatura</h3>
-
-                        <div className="space-y-6 flex-1 mb-12 border-b border-white/10 pb-12">
-                            <div className="flex items-center justify-between">
+                {/* Right Column - Summary */}
+                <div className="lg:col-span-5 sticky top-8">
+                    <div className="bg-[#1A1A1A] text-white rounded-3xl p-8 md:p-10 shadow-2xl relative overflow-hidden">
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                                    <Star size={24} className="text-yellow-400 fill-yellow-400" />
+                                </div>
                                 <div>
-                                    <p className="font-semibold text-lg">EduTecPro Individual</p>
-                                    <p className="text-white/40 text-sm">Plano Completo PRO</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-xl text-[#00A859]">R$ 29,90</p>
+                                    <h3 className="text-xl font-bold">Plano Pro</h3>
+                                    <p className="text-white/40 text-xs uppercase tracking-widest">Assinatura Individual</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between text-white/60 text-sm">
-                                <p>Período de Faturamento</p>
-                                <p>Mensal (Renovação Automática)</p>
+                            <div className="space-y-4 mb-8">
+                                <div className="flex items-center justify-between text-sm py-3 border-b border-white/5">
+                                    <span className="text-white/60">Ciclo de faturamento</span>
+                                    <span className="font-medium text-white/80">Mensal</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm py-3 border-b border-white/5">
+                                    <span className="text-white/60">Status do teste</span>
+                                    <span className="font-semibold text-[#00A859]">7 Dias Grátis</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="flex items-end justify-between">
-                            <p className="text-white/60">Total a pagar hoje</p>
-                            <p className="text-4xl font-bold">
-                                {paymentMethod === 'credit_card' ? `R$ ${(29.9 * (installments === 1 ? 1 : installments)).toFixed(2).replace('.', ',')}` : 'R$ 29,90'}
-                            </p>
-                        </div>
+                            <div className="bg-white/5 rounded-2xl p-6 mb-8">
+                                <div className="flex items-end justify-between mb-1">
+                                    <span className="text-white/40 text-[11px] font-bold uppercase tracking-wider">Total Hoje</span>
+                                    <span className="text-3xl font-bold">R$ 0,00</span>
+                                </div>
+                                <p className="text-white/20 text-[10px] leading-relaxed">
+                                    Após 7 dias, será cobrado R$ 29,90 por mês até que você cancele.
+                                </p>
+                            </div>
 
-                        {/* Downgrade Option */}
-                        <div className="mt-12 pt-12 border-t border-white/10">
-                            <p className="text-white/40 text-sm mb-4">Não quer assinar o Pro agora?</p>
+                            {/* Benefits List */}
+                            <div className="space-y-3 mb-10">
+                                {[
+                                    'Relatórios PDF Ilimitados',
+                                    'Planejamentos com IA',
+                                    'Suporte Prioritário',
+                                    'Novas Funcionalidades Semanais'
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-2 text-xs text-white/50">
+                                        <CheckCircle2 size={14} className="text-[#00A859]" />
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+
                             <button
                                 onClick={handleDowngradeToFree}
                                 disabled={isDowngrading}
-                                className="w-full py-4 border border-white/10 rounded-full text-white/60 text-sm font-semibold hover:bg-white/5 hover:text-white transition-all disabled:opacity-50"
+                                className="w-full py-4 bg-white/5 border border-white/10 rounded-xl text-white/60 text-sm font-semibold hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
                             >
-                                {isDowngrading ? 'Processando...' : 'Continuar com Plano Free'}
+                                {isDowngrading ? 'Processando...' : 'Voltar para o Plano Free'}
                             </button>
                         </div>
+
+                        {/* Decoration */}
+                        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-[#00A859]/5 rounded-full blur-3xl pointer-events-none" />
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
 }
