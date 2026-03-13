@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, QrCode, ArrowLeft, CheckCircle2, ShieldCheck, Loader2, Star } from 'lucide-react';
+import { CreditCard, QrCode, ArrowLeft, CheckCircle2, ShieldCheck, Loader2, Star, Zap, Clock, Gift } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
 
@@ -54,6 +54,77 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
             alert('Erro ao processar alteração de plano.');
         } finally {
             setIsDowngrading(false);
+        }
+    };
+
+    const handleStartTrial = async () => {
+        setIsProcessing(true);
+        try {
+            let activeUserId = '';
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
+                if (!email || !password) {
+                    alert('Por favor, informe um E-mail e Senha para criar sua conta e iniciar o teste grátis.');
+                    setIsProcessing(false);
+                    return;
+                }
+
+                let { data: authData, error: authError } = await supabase.auth.signUp({
+                    email,
+                    password,
+                });
+
+                if (authError) {
+                    if (authError.message.includes('User already registered') || authError.status === 400) {
+                        const loginResp = await supabase.auth.signInWithPassword({ email, password });
+                        if (loginResp.error) throw loginResp.error;
+                        authData = loginResp.data;
+                    } else {
+                        throw authError;
+                    }
+                }
+
+                if (!authData.user) throw new Error("Não foi possível autenticar a conta.");
+                activeUserId = authData.user.id;
+
+                await supabase.from('users').upsert({
+                    id: activeUserId,
+                    nome: email.split('@')[0],
+                    email: email,
+                    senha: 'auth_managed_by_supabase',
+                    plano: 'free',
+                    status_pagamento: 'pendente',
+                    data_expiracao: new Date().toISOString().split('T')[0],
+                    created_at: new Date().toISOString()
+                }, { onConflict: 'id' });
+            } else {
+                activeUserId = session.user.id;
+            }
+
+            const trialExpiration = new Date();
+            trialExpiration.setDate(trialExpiration.getDate() + 7);
+
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    status_pagamento: 'trial',
+                    plano: 'pro',
+                    data_expiracao: trialExpiration.toISOString().split('T')[0]
+                })
+                .eq('id', activeUserId);
+
+            if (error) throw error;
+
+            setShowSuccess(true);
+            setTimeout(() => {
+                onSuccess('pro');
+            }, 3000);
+
+        } catch (err: any) {
+            console.error('Trial error:', err);
+            alert(err.message || 'Erro ao iniciar período de teste.');
+            setIsProcessing(false);
         }
     };
 
@@ -122,16 +193,12 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
             // Simulate payment processing time
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Calculate new expiration date (30 days for PIX, 12 months for Card as per requirements)
+            // Calculate new expiration date (30 days for PIX and Card as per new monthly requirement)
             const expirationDate = new Date();
-            if (paymentMethod === 'pix') {
-                expirationDate.setDate(expirationDate.getDate() + 30);
-            } else {
-                expirationDate.setMonth(expirationDate.getMonth() + 12);
-            }
+            expirationDate.setDate(expirationDate.getDate() + 30);
 
             // Update users table in Supabase
-            const { error, data: updatedUser } = await supabase
+            const { error } = await supabase
                 .from('users')
                 .update({
                     status_pagamento: 'aprovado',
@@ -141,8 +208,6 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
                 .eq('id', activeUserId);
 
             if (error) throw error;
-
-            console.log("Dados do usuário atualizados:", updatedUser);
 
             setShowSuccess(true);
 
@@ -209,38 +274,12 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
 
                     <div className="mb-10">
                         <h2 className="text-3xl font-bold tracking-tight mb-2">Assinar Plano Pro</h2>
-                        <p className="text-black/60">Escolha seu método de pagamento</p>
+                        <p className="text-black/60">Sua conta completa para gestão escolar</p>
                     </div>
 
-                    <form onSubmit={handlePayment} className="space-y-8">
-                        {/* Payment Method Selector */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setPaymentMethod('credit_card')}
-                                className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${paymentMethod === 'credit_card'
-                                    ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
-                                    : 'border-black/5 bg-transparent text-black/60 hover:border-black/10'
-                                    }`}
-                            >
-                                <CreditCard size={28} />
-                                <span className="font-semibold text-sm">Pagar com Cartão (12 meses)</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPaymentMethod('pix')}
-                                className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${paymentMethod === 'pix'
-                                    ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
-                                    : 'border-black/5 bg-transparent text-black/60 hover:border-black/10'
-                                    }`}
-                            >
-                                <QrCode size={28} />
-                                <span className="font-semibold text-sm">Pagar com PIX (30 dias)</span>
-                            </button>
-                        </div>
-
-                        {/* User Account Info Container */}
-                        <div className="space-y-5 bg-black/5 p-5 rounded-2xl border border-black/10">
+                    <div className="space-y-8">
+                        {/* User Account Info Container - NOW AT TOP */}
+                        <div className="space-y-5 bg-black/5 p-6 rounded-3xl border border-black/10">
                             <h3 className="font-bold text-black/80 flex items-center gap-2">
                                 <ShieldCheck size={20} className="text-[#00A859]" />
                                 Seus Dados de Acesso
@@ -278,6 +317,63 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
                                 </div>
                             )}
                         </div>
+
+                        {/* Trial Button Section */}
+                        <div className="bg-[#00A859]/5 border-2 border-[#00A859]/20 rounded-3xl p-6 md:p-8 text-center space-y-4">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#00A859] text-white text-[10px] font-black uppercase tracking-widest rounded-full">
+                                <Gift size={12} />
+                                Oferta Especial
+                            </div>
+                            <h3 className="text-xl font-bold text-[#00A859]">Acesso Gratuito por 7 Dias</h3>
+                            <p className="text-sm text-black/60 max-w-sm mx-auto">
+                                Experimente todas as funcionalidades do Plano Pro sem pagar nada agora. Após o teste, você escolhe como continuar.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={handleStartTrial}
+                                disabled={isProcessing}
+                                className="w-full py-5 bg-[#00A859] text-white rounded-full font-bold text-lg hover:bg-[#008F4C] transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#00A859]/20"
+                            >
+                                {isProcessing ? <Loader2 className="animate-spin" /> : <><Zap size={20} /> Experimentar GRÁTIS por 7 dias</>}
+                            </button>
+                        </div>
+
+                        <div className="relative py-4">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-black/10"></div>
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-white px-4 text-black/40 font-bold tracking-widest">Ou escolha o método de pagamento</span>
+                            </div>
+                        </div>
+
+                        {/* Payment Method Selector */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                type="button"
+                                onClick={() => setPaymentMethod('credit_card')}
+                                className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${paymentMethod === 'credit_card'
+                                    ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
+                                    : 'border-black/5 bg-transparent text-black/60 hover:border-black/10'
+                                    }`}
+                            >
+                                <CreditCard size={28} />
+                                <span className="font-semibold text-sm">Cartão de Crédito</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPaymentMethod('pix')}
+                                className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${paymentMethod === 'pix'
+                                    ? 'border-[#00A859] bg-[#00A859]/5 text-[#00A859]'
+                                    : 'border-black/5 bg-transparent text-black/60 hover:border-black/10'
+                                    }`}
+                            >
+                                <QrCode size={28} />
+                                <span className="font-semibold text-sm">Pagar com PIX</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handlePayment} className="space-y-8">
 
                         {/* Credit Card Form (Simulated) */}
                         <AnimatePresence mode="wait">
@@ -347,7 +443,7 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
                                             onChange={(e) => setInstallments(Number(e.target.value))}
                                             className="w-full px-5 py-4 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white"
                                         >
-                                            <option value={1}>1x de R$ 29,90 (À vista)</option>
+                                            <option value={1}>1x de R$ 29,90 (Mensal)</option>
                                             {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                                                 <option key={n} value={n}>{n}x de R$ 29,90 (Sem juros)</option>
                                             ))}
@@ -399,59 +495,60 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
                         </div>
                     </form>
                 </div>
+            </div>
 
-                {/* Right Column - Order Summary */}
-                <div className="flex flex-col justify-center">
-                    <div className="bg-[#1A1A1A] text-white rounded-[32px] p-8 md:p-12 shadow-2xl relative overflow-hidden">
-                        <div className="absolute -top-32 -right-32 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-                        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#00A859]/20 rounded-full blur-3xl" />
+            {/* Right Column - Order Summary */}
+            <div className="flex flex-col justify-center">
+                <div className="bg-[#1A1A1A] text-white rounded-[32px] p-8 md:p-12 shadow-2xl relative overflow-hidden">
+                    <div className="absolute -top-32 -right-32 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#00A859]/20 rounded-full blur-3xl" />
 
-                        <div className="relative z-10">
-                            <div className="inline-flex items-center justify-center w-12 h-12 bg-white/10 rounded-xl mb-8">
-                                <Star size={24} className="text-yellow-400 fill-yellow-400" />
-                            </div>
+                    <div className="relative z-10">
+                        <div className="inline-flex items-center justify-center w-12 h-12 bg-white/10 rounded-xl mb-8">
+                            <Star size={24} className="text-yellow-400 fill-yellow-400" />
+                        </div>
 
-                            <h3 className="text-3xl font-bold mb-8">Resumo da Assinatura</h3>
+                        <h3 className="text-3xl font-bold mb-8">Resumo da Assinatura</h3>
 
-                            <div className="space-y-6 flex-1 mb-12 border-b border-white/10 pb-12">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="font-semibold text-lg">EduTecPro Individual</p>
-                                        <p className="text-white/40 text-sm">Plano Completo PRO</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-xl text-[#00A859]">R$ 29,90</p>
-                                    </div>
+                        <div className="space-y-6 flex-1 mb-12 border-b border-white/10 pb-12">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-semibold text-lg">EduTecPro Individual</p>
+                                    <p className="text-white/40 text-sm">Plano Completo PRO</p>
                                 </div>
-
-                                <div className="flex items-center justify-between text-white/60 text-sm">
-                                    <p>Período de Faturamento</p>
-                                    <p>{paymentMethod === 'pix' ? '30 Dias (Renovação Manual)' : 'Anual (Renovação Automática)'}</p>
+                                <div className="text-right">
+                                    <p className="font-bold text-xl text-[#00A859]">R$ 29,90</p>
                                 </div>
                             </div>
 
-                             <div className="flex items-end justify-between">
-                                <p className="text-white/60">Total a pagar hoje</p>
-                                <p className="text-4xl font-bold">
-                                    {paymentMethod === 'credit_card' ? `R$ ${(29.9 * installments).toFixed(2).replace('.', ',')}` : 'R$ 29,90'}
-                                </p>
+                            <div className="flex items-center justify-between text-white/60 text-sm">
+                                <p>Período de Faturamento</p>
+                                <p>Mensal (Renovação Automática)</p>
                             </div>
+                        </div>
 
-                            {/* Downgrade Option */}
-                            <div className="mt-12 pt-12 border-t border-white/10">
-                                <p className="text-white/40 text-sm mb-4">Não quer assinar o Pro agora?</p>
-                                <button
-                                    onClick={handleDowngradeToFree}
-                                    disabled={isDowngrading}
-                                    className="w-full py-4 border border-white/10 rounded-full text-white/60 text-sm font-semibold hover:bg-white/5 hover:text-white transition-all disabled:opacity-50"
-                                >
-                                    {isDowngrading ? 'Processando...' : 'Continuar com Plano Free'}
-                                </button>
-                            </div>
+                        <div className="flex items-end justify-between">
+                            <p className="text-white/60">Total a pagar hoje</p>
+                            <p className="text-4xl font-bold">
+                                {paymentMethod === 'credit_card' ? `R$ ${(29.9 * (installments === 1 ? 1 : installments)).toFixed(2).replace('.', ',')}` : 'R$ 29,90'}
+                            </p>
+                        </div>
+
+                        {/* Downgrade Option */}
+                        <div className="mt-12 pt-12 border-t border-white/10">
+                            <p className="text-white/40 text-sm mb-4">Não quer assinar o Pro agora?</p>
+                            <button
+                                onClick={handleDowngradeToFree}
+                                disabled={isDowngrading}
+                                className="w-full py-4 border border-white/10 rounded-full text-white/60 text-sm font-semibold hover:bg-white/5 hover:text-white transition-all disabled:opacity-50"
+                            >
+                                {isDowngrading ? 'Processando...' : 'Continuar com Plano Free'}
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    );
+    </div>
+);
 }
