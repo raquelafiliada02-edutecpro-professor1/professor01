@@ -9,9 +9,18 @@ interface PaymentPageProps {
     onSuccess: (role: UserProfile) => void;
     onUnauthenticated: () => void;
     userEmail: string;
+    monthlyPrice?: number;
+    trialDays?: number;
 }
 
-export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, userEmail }: PaymentPageProps) {
+export default function PaymentPage({ 
+    onBack, 
+    onSuccess, 
+    onUnauthenticated, 
+    userEmail,
+    monthlyPrice = 29.90,
+    trialDays = 7
+}: PaymentPageProps) {
     const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'pix'>('credit_card');
     const [isProcessing, setIsProcessing] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -116,6 +125,7 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
 
             if (error) throw error;
 
+            alert('Seu período de teste grátis de 7 dias foi ativado com sucesso!');
             setShowSuccess(true);
             setTimeout(() => {
                 onSuccess('pro');
@@ -198,6 +208,7 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
             expirationDate.setDate(expirationDate.getDate() + 30);
 
             // Update users table in Supabase
+            // Somente após o pagamento ser "aprovado" (simulado aqui)
             const { error } = await supabase
                 .from('users')
                 .update({
@@ -528,14 +539,27 @@ export default function PaymentPage({ onBack, onSuccess, onUnauthenticated, user
                                 </div>
                             </div>
 
-                            <div className="bg-white/5 rounded-2xl p-6 mb-8">
-                                <div className="flex items-end justify-between mb-1">
-                                    <span className="text-white/40 text-[11px] font-bold uppercase tracking-wider">Total Hoje</span>
-                                    <span className="text-3xl font-bold">R$ 0,00</span>
+                            <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/5">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <span className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Total Hoje</span>
+                                            <p className="text-[#00A859] text-xs font-semibold">Início do Teste Grátis</p>
+                                        </div>
+                                        <span className="text-3xl font-bold">R$ 0,00</span>
+                                    </div>
+                                    
+                                    <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <span className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Após {trialDays} dias</span>
+                                            <p className="text-white/60 text-xs">Assinatura Mensal</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xl font-bold">R$ {monthlyPrice.toFixed(2).replace('.', ',')}</span>
+                                            <span className="text-white/40 text-[10px] block">/mês</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-white/20 text-[10px] leading-relaxed">
-                                    Após 7 dias, será cobrado R$ 29,90 por mês até que você cancele.
-                                </p>
                             </div>
 
                             {/* Benefits List */}

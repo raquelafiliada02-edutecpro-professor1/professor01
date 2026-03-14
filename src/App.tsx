@@ -54,15 +54,30 @@ export default function App() {
 
         if (matchedPlano === 'pro') {
           const isPaid = data.status_pagamento === 'ativo' || data.status_pagamento === 'aprovado';
+          const isTrial = data.status_pagamento === 'trial';
           
           if (!isPaid && isExpired) {
-            // Trial or regular plan expired and not paid
+            // Trial ou Assinatura expirou e não foi paga
+            if (isTrial) {
+              alert("Seu período de teste grátis de 7 dias terminou. Para continuar acessando as ferramentas Pro, escolha uma forma de pagamento.");
+              
+              // REVERSÃO AUTOMÁTICA NO BANCO: Se o trial acabou e não pagou, volta para Free
+              const { error: updateError } = await supabase
+                .from('users')
+                .update({ plano: 'free' })
+                .eq('id', userId);
+              
+              if (updateError) console.error("Erro ao reverter plano:", updateError);
+            } else {
+              alert("Sua assinatura Pro expirou. Por favor, regularize seu pagamento para continuar.");
+            }
             setView('payment');
-          } else if (!isPaid && data.status_pagamento !== 'trial' && data.status_pagamento !== 'pendente') {
-            // Fallback for other unpaid statuses
-            setView('payment');
+          } else if (!isPaid && !isTrial && data.status_pagamento !== 'pendente') {
+            // Caso não esteja pago, não seja trial e nem pendente (ex: erro no gateway)
+            setCurrentProfile('free');
+            setView('dashboard');
           } else {
-            // Still in trial or paid
+            // Mantém no Pro se for trial ativo ou pago
             if (intendedViewRef.current) {
               setView(intendedViewRef.current);
               intendedViewRef.current = null;

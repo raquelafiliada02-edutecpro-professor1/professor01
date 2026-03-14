@@ -100,12 +100,18 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
 
   const shortcutCategories = [
     {
-      title: 'Pedagógico',
+      title: 'Registros Pedagógicos',
       items: [
-        { id: 'plano-aula', label: 'Plano de Aula', icon: LayoutDashboard },
         { id: 'diario-semanal', label: 'Diário Semanal', icon: Calendar },
         { id: 'registro-mensal', label: 'Registro Mensal', icon: ClipboardList },
-        { id: 'relatorio-individual', label: 'Relatórios', icon: FileText },
+        { id: 'planejamento-diario', label: 'Planejamento Diário', icon: FileEdit },
+      ]
+    },
+    {
+      title: 'Relatórios',
+      items: [
+        { id: 'relatorio-individual', label: 'Relatório Individual', icon: FileText },
+        { id: 'relatorios-turma', label: 'Relatórios da Turma', icon: Users },
         { id: 'parecer-pcd', label: 'Parecer PCD', icon: Accessibility },
         { id: 'parecer-final', label: 'Parecer Final (IA)', icon: Sparkles },
       ]
@@ -114,9 +120,6 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
       title: 'Gestão Escolar',
       items: [
         { id: 'alunos', label: 'Alunos', icon: Users },
-        { id: 'professores', label: 'Professores', icon: GraduationCap },
-        { id: 'turmas', label: 'Turmas', icon: School },
-        { id: 'presenca', label: 'Presença', icon: CheckSquare },
       ]
     }
   ];

@@ -43,6 +43,8 @@ export default function DashboardLayout({
                     role={role}
                     activeItem={activeItem}
                     setIsSidebarOpen={setIsSidebarOpen}
+                    onLogout={onLogout}
+                    onGoToPayment={onGoToPayment}
                     userDataExpiracao={userDataExpiracao}
                     statusPagamento={statusPagamento}
                 />
