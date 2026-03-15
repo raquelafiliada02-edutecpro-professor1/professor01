@@ -153,7 +153,7 @@ export default function DataRetentionBanner({
     const exportData = async () => {
         setIsExporting(true);
         try {
-            const allowedModules = ['diario-semanal', 'registro-mensal', 'planejamento-diario', 'relatorio-individual', 'relatorios-turma', 'parecer-pcd', 'parecer-final'];
+            const allowedModules = ['planejamento-semanal', 'registro-mensal', 'planejamento-diario', 'relatorio-individual', 'relatorios-turma', 'parecer-pcd', 'parecer-final'];
             const recordsToExport = records.filter(r => allowedModules.includes(r.moduleId));
 
             if (recordsToExport.length === 0) {

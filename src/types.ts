@@ -31,7 +31,7 @@ export interface PedagogicalRecord {
   curricularComponent?: string;
   period?: string;
   tone?: string;
-  bnccCodes?: string;
+  bnccCodes: string[];
   objectives?: string;
   content?: string;
   resources?: string;
@@ -57,6 +57,19 @@ export interface PedagogicalRecord {
   apdHours?: string;
   frequenciaDiaria?: string;
   justificativasFaltas?: string;
+  // Weekly Grid Data
+  weeklyData?: {
+    [key: string]: {
+      turno?: string;
+      horario?: string;
+      campoExperiencia?: string;
+      bnccCodes?: string[];
+      atividade?: string;
+      objetivo?: string;
+      acompanhamento?: string;
+      observacoes?: string;
+    };
+  };
   exportFormat?: 'pdf' | 'csv';
 }
 
@@ -65,14 +78,14 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard-evolucao', label: 'Dashboard de Evolução', icon: 'LayoutDashboard', category: '', roles: ['diretor', 'professor', 'pro'] },
 
   // Registros Pedagógicos
-  { id: 'diario-semanal', label: 'Diário Semanal', icon: 'Calendar', category: 'Registros Pedagógicos', roles: ['diretor', 'professor', 'free', 'pro'] },
+  { id: 'planejamento-semanal', label: 'Planejamento Semanal', icon: 'Calendar', category: 'Registros Pedagógicos', roles: ['diretor', 'professor', 'free', 'pro'] },
   { id: 'registro-mensal', label: 'Registro Mensal', icon: 'ClipboardList', category: 'Registros Pedagógicos', roles: ['diretor', 'professor', 'free', 'pro'] },
   { id: 'planejamento-diario', label: 'Planejamento Diário', icon: 'FileEdit', category: 'Registros Pedagógicos', roles: ['diretor', 'professor', 'free', 'pro'] },
 
   // Relatórios
   { id: 'relatorio-individual', label: 'Relatório Individual', icon: 'FileText', category: 'Relatórios', roles: ['diretor', 'professor', 'free', 'pro'] },
   { id: 'parecer-pcd', label: 'Parecer PCD', icon: 'Accessibility', category: 'Relatórios', roles: ['diretor', 'professor', 'pro'] },
-  { id: 'parecer-final', label: 'Parecer Final (IA)', icon: 'Sparkles', category: 'Relatórios', roles: ['diretor', 'professor', 'pro'] },
+  { id: 'parecer-final', label: 'Parecer Final (Análise)', icon: 'Sparkles', category: 'Relatórios', roles: ['diretor', 'professor', 'pro'] },
 
   // Gestão (Teacher centric)
   { id: 'alunos', label: 'Alunos', icon: 'Users', category: 'Gestão Escolar', roles: ['diretor', 'professor', 'pro'] },

@@ -566,7 +566,7 @@ export default function PaymentPage({
                             <div className="space-y-3 mb-10">
                                 {[
                                     'Relatórios PDF Ilimitados',
-                                    'Planejamentos com IA',
+                                    'Planejamentos com Análise',
                                     'Suporte Prioritário',
                                     'Novas Funcionalidades Semanais'
                                 ].map((item, i) => (

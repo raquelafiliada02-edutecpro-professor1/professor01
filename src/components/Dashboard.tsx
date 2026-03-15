@@ -172,7 +172,7 @@ export default function Dashboard({
         curricularComponent: record.curricularComponent || '',
         period: record.period || '',
         tone: record.tone || 'Formal',
-        bnccCodes: Array.isArray(record.bnccCodes) ? record.bnccCodes : (record.bnccCodes ? record.bnccCodes.split(',').map(s => s.trim()) : []),
+        bnccCodes: Array.isArray(record.bnccCodes) ? record.bnccCodes : [],
         objectives: record.objectives || '',
         content: record.content || '',
         resources: record.resources || '',
@@ -195,6 +195,13 @@ export default function Dashboard({
         formacaoContinuada: record.formacaoContinuada || '',
         autoavaliacao: record.autoavaliacao || '',
         feedbackCoordenacao: record.feedbackCoordenacao || '',
+        weeklyData: record.weeklyData || {
+          'Segunda-feira': {},
+          'Terça-feira': {},
+          'Quarta-feira': {},
+          'Quinta-feira': {},
+          'Sexta-feira': {}
+        },
         exportFormat: 'pdf'
       });
     } else {
@@ -212,7 +219,7 @@ export default function Dashboard({
             alert(`Limite do Plano Free: 1 ${activeItem?.label} por dia. Mude para o Pro para ilimitado!`);
             return;
           }
-        } else if (['diario-semanal', 'registro-mensal', 'plano-aula', 'relatorios-turma'].includes(activeTab)) {
+        } else if (['planejamento-semanal', 'registro-mensal', 'plano-aula', 'relatorios-turma'].includes(activeTab)) {
           const weekRecords = moduleRecords.filter(r => new Date(r.createdAt).getTime() >= startOfWeek);
           if (weekRecords.length >= 1) {
             alert("Limite do Plano Free: 1 registro por semana neste módulo. Mude para o Pro para ilimitado!");
@@ -243,6 +250,13 @@ export default function Dashboard({
         content: '',
         resources: '',
         evaluation: '',
+        weeklyData: {
+          'Segunda-feira': { bnccCodes: [] },
+          'Terça-feira': { bnccCodes: [] },
+          'Quarta-feira': { bnccCodes: [] },
+          'Quinta-feira': { bnccCodes: [] },
+          'Sexta-feira': { bnccCodes: [] }
+        },
         exportFormat: 'pdf'
       });
     }
@@ -261,6 +275,12 @@ export default function Dashboard({
     if (activeTab === 'planejamento-diario') {
       if (!formData.objectives || !formData.content || !formData.resources || !formData.evaluation) {
         alert("Por favor, preencha os campos obrigatórios do planejamento.");
+        return;
+      }
+    } else if (activeTab === 'planejamento-semanal') {
+      // Basic validation for at least one field filled? or just title/date
+      if (!formData.title || !formData.date) {
+        alert("Por favor, preencha o título e a data da semana.");
         return;
       }
     } else {
@@ -289,51 +309,133 @@ export default function Dashboard({
       setRecords([...records, newRecord]);
     }
 
-    // SUPABASE INTEGRAÇÃO PARA CÓDIGOS BNCC
-    // Se o registro possuir códigos BNCC, salvar no supabase
-    if (formData.bnccCodes.length > 0) {
-      try {
-        // Encontrar os IDs reais para os códigos selecionados
-        const selectedBnccIds = dbBnccCodes
-          .filter(b => formData.bnccCodes.includes(b.codigo))
-          .map(b => b.id);
+    // SUPABASE INTEGRAÇÃO PARA CÓDIGOS BNCC E REGISTROS
+    try {
+      // 1. Identificar tabela e dados principais
+      let targetTable = '';
+      let recordData: any = {
+        id: recordIdToSave,
+        professor_id: userId,
+        created_at: new Date().toISOString()
+      };
 
-        if (selectedBnccIds.length > 0) {
-          // 1. Limpar vínculos antigos se for edição
-          if (editingRecord) {
-            await supabase
-              .from('planejamento_bncc')
-              .delete()
-              .eq('planejamento_id', recordIdToSave);
+      if (activeTab === 'planejamento-diario') {
+        targetTable = 'planejamento_diario';
+        recordData = {
+          ...recordData,
+          titulo: formData.title,
+          data: formData.date,
+          componente: formData.curricularComponent,
+          objetivos: formData.objectives,
+          conteudo: formData.content,
+          recursos: formData.resources,
+          avaliacao: formData.evaluation
+        };
+      } else if (activeTab === 'planejamento-semanal') {
+        const days = Object.keys(formData.weeklyData || {});
+        for (const dia of days) {
+          const dayData = formData.weeklyData![dia];
+          // Determine existing ID or create new one for the day row
+          const dayId = editingRecord?.weeklyData?.[dia]?.id || crypto.randomUUID();
+          
+          const recordDataDay = {
+            id: dayId,
+            professor_id: userId,
+            parent_doc_id: recordIdToSave,
+            dia_semana: dia,
+            turno: dayData.turno || '',
+            horario: dayData.horario || '',
+            campo_experiencia: dayData.campoExperiencia || '',
+            atividade: dayData.atividade || '',
+            objetivo: dayData.objetivo || '',
+            acompanhamento: dayData.acompanhamento || '',
+            observacoes: dayData.observacoes || '',
+            created_at: new Date().toISOString()
+          };
+
+          await supabase.from('planejamento_semanal').upsert(recordDataDay);
+
+          // Save BNCC links for this specific day
+          if (dayData.bnccCodes && dayData.bnccCodes.length > 0) {
+            const selectedBnccIds = dbBnccCodes
+              .filter(b => dayData.bnccCodes!.includes(b.codigo))
+              .map(b => b.id);
+
+            if (selectedBnccIds.length > 0) {
+              await supabase.from('planejamento_semanal_bncc').delete().eq('semanal_id', dayId);
+              const links = selectedBnccIds.map(bnccId => ({ semanal_id: dayId, bncc_id: bnccId }));
+              await supabase.from('planejamento_semanal_bncc').insert(links);
+            }
           }
-
-          // 2. Inserir na tabela relacional planejamento_bncc
-          const planejamemtoBnccInserts = selectedBnccIds.map(bnccId => ({
-            planejamento_id: recordIdToSave,
-            bncc_id: bnccId
-          }));
-
-          const { error: relError } = await supabase
-            .from('planejamento_bncc')
-            .insert(planejamemtoBnccInserts);
-
-          if (relError) console.error("Erro inserindo na tabela relacional:", relError);
+        }
+        // Skip normal flow below since we saved sub-records
+        targetTable = ''; 
+      } else if (['relatorio-individual', 'parecer-pcd', 'parecer-final', 'registro-mensal'].includes(activeTab)) {
+        targetTable = 'relatorios';
+        const selectedStudent = (supabaseStudents as any[]).find(s => s.nome === formData.studentName);
+        
+        // Consolidar campos específicos se for registro mensal
+        let bundledContent = formData.description || formData.content;
+        if (activeTab === 'registro-mensal') {
+          bundledContent = `
+            Metodologias: ${formData.metodologias || ''}
+            Materiais: ${formData.materiaisDidaticos || ''}
+            Obs Comportamento: ${formData.obsComportamento || ''}
+            Comunicação Responsaveis: ${formData.comunicacaoResponsaveis || ''}
+            Descrição Geral: ${formData.description || ''}
+          `.trim();
         }
 
-        alert("Códigos BNCC vinculados com sucesso.");
+        recordData = {
+          ...recordData,
+          aluno_id: selectedStudent?.id,
+          tipo: activeTab,
+          conteudo: bundledContent
+        };
+      }
 
-      } catch (err: any) {
-        console.error("Falha ao salvar códigos BNCC: ", err);
-        alert("O relatório foi salvo localmente, mas houve um erro ao vincular a BNCC: " + err.message);
+      if (targetTable) {
+        // Upsert do registro principal
+        const { error: mainError } = await supabase
+          .from(targetTable)
+          .upsert(recordData);
+
+        if (mainError) throw mainError;
+
+        // 2. Salvar vínculos BNCC (Até 3)
+        if (formData.bnccCodes.length > 0) {
+          const selectedBnccIds = dbBnccCodes
+            .filter(b => formData.bnccCodes.includes(b.codigo))
+            .map(b => b.id);
+
+          if (selectedBnccIds.length > 0) {
+            if (targetTable === 'planejamento_diario') {
+              if (editingRecord) {
+                await supabase.from('planejamento_bncc').delete().eq('planejamento_id', recordIdToSave);
+              }
+              const links = selectedBnccIds.map(bnccId => ({ planejamento_id: recordIdToSave, bncc_id: bnccId }));
+              await supabase.from('planejamento_bncc').insert(links);
+            } else if (targetTable === 'planejamento_semanal') {
+              if (editingRecord) {
+                await supabase.from('planejamento_semanal_bncc').delete().eq('semanal_id', recordIdToSave);
+              }
+              const links = selectedBnccIds.map(bnccId => ({ semanal_id: recordIdToSave, bncc_id: bnccId }));
+              await supabase.from('planejamento_semanal_bncc').insert(links);
+            } else if (targetTable === 'relatorios') {
+              if (editingRecord) {
+                await supabase.from('relatorios_bncc').delete().eq('relatorio_id', recordIdToSave);
+              }
+              const links = selectedBnccIds.map(bnccId => ({ relatorio_id: recordIdToSave, bncc_id: bnccId }));
+              await supabase.from('relatorios_bncc').insert(links);
+            }
+          }
+        }
       }
-    } else {
-      if (activeTab === 'planejamento-diario') {
-        alert("Planejamento diário registrado com sucesso.");
-      } else if (activeTab === 'registro-mensal') {
-        alert("Registro mensal salvo com sucesso.");
-      } else {
-        alert("Registro salvo com sucesso.");
-      }
+
+      alert("Registro e vínculos BNCC salvos com sucesso no servidor.");
+    } catch (err: any) {
+      console.error("Erro na sincronização com Supabase:", err);
+      alert("Registro salvo localmente, mas erro ao sincronizar com servidor: " + err.message);
     }
 
     setIsFormOpen(false);
@@ -385,7 +487,10 @@ export default function Dashboard({
 
       } else {
         // Generate PDF
-        const doc = new jsPDF();
+        const isWeekly = activeTab === 'planejamento-semanal';
+        const doc = new jsPDF({
+          orientation: isWeekly ? 'landscape' : 'portrait'
+        });
         const pageWidth = doc.internal.pageSize.width;
 
         // Header
@@ -414,7 +519,14 @@ export default function Dashboard({
         if (targetData.studentName) infoData.push(['Aluno', targetData.studentName]);
         if (targetData.curricularComponent) infoData.push(['Componente Curricular', targetData.curricularComponent]);
         if (targetData.period) infoData.push(['Período', targetData.period]);
-        if (targetData.bnccCodes && targetData.bnccCodes.length > 0) infoData.push(['Códigos BNCC', targetData.bnccCodes.join(', ')]);
+        
+        if (!isWeekly && targetData.bnccCodes && targetData.bnccCodes.length > 0) {
+          const bnccInfo = targetData.bnccCodes.map(code => {
+            const dbRef = dbBnccCodes.find(b => b.codigo === code);
+            return dbRef ? `${code}: ${dbRef.descricao}` : code;
+          }).join('\n');
+          infoData.push(['BNCC', bnccInfo]);
+        }
 
         autoTable(doc, {
           startY: 75,
@@ -426,31 +538,69 @@ export default function Dashboard({
 
         let currentY = (doc as any).lastAutoTable.finalY + 15;
 
-        const addPDFSection = (title: string, content: string) => {
-          if (!content) return;
-          if (currentY > 250) { doc.addPage(); currentY = 20; }
-          doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(0, 168, 89);
-          doc.text(title, 14, currentY); currentY += 8;
-          doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
-          const splitText = doc.splitTextToSize(content, pageWidth - 28);
-          doc.text(splitText, 14, currentY); currentY += (splitText.length * 5) + 10;
-        };
+        if (isWeekly && targetData.weeklyData) {
+          const tableHeaders = [['Dia', 'Turno', 'Horário', 'Campo Exp.', 'BNCC', 'Atividade', 'Objetivo', 'Acomp.', 'Obs.']];
+          const tableBody = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'].map(day => {
+            const dayData = targetData.weeklyData?.[day] || {};
+            return [
+              day,
+              dayData.turno || '-',
+              dayData.horario || '-',
+              dayData.campoExperiencia || '-',
+              (dayData.bnccCodes || []).join(', ') || '-',
+              dayData.atividade || '-',
+              dayData.objetivo || '-',
+              dayData.acompanhamento || '-',
+              dayData.observacoes || '-'
+            ];
+          });
 
-        if (activeTab === 'planejamento-diario') {
-          addPDFSection("Objetivos da Aula", targetData.objectives);
-          addPDFSection("Conteúdo / Atividades Planejadas", targetData.content);
-          addPDFSection("Recursos Didáticos", targetData.resources);
-          addPDFSection("Avaliação / Observações", targetData.evaluation);
-        } else if (activeTab === 'registro-mensal') {
-          addPDFSection("1. Identificação e Carga Horária", `Professor: ${targetData.professorName}\nDisciplina: ${targetData.discipline}\nUnidade: ${targetData.schoolUnit}\nTotal Aulas Dadas: ${targetData.totalAulasDadas}\nAulas Previstas: ${targetData.aulasPrevistas}\nAulas Pendentes: ${targetData.aulasPendentes}\nHoras APD: ${targetData.apdHours}`);
-          addPDFSection("2. Conteúdos e Metodologias", `Conteúdos: ${targetData.content}\nMetodologias: ${targetData.metodologias}`);
-          addPDFSection("3. Avaliações e Materiais", `Avaliações: ${targetData.evaluation}\nMateriais: ${targetData.materiaisDidaticos}`);
-          addPDFSection("4. Frequência e Comportamento", `Frequência: ${targetData.frequenciaDiaria}\nJustificativas: ${targetData.justificativasFaltas}\nComportamento: ${targetData.obsComportamento}`);
-          addPDFSection("5. Relacionamento Escola-Comunidade", `Comunicação: ${targetData.comunicacaoResponsaveis}\nConselhos: ${targetData.participacaoConselhos}\nAtividades Coletivas: ${targetData.atividadesColetivas}`);
-          addPDFSection("6. Reflexão e Desenvolvimento", `Formação: ${targetData.formacaoContinuada}\nAutoavaliação: ${targetData.autoavaliacao}\nFeedback: ${targetData.feedbackCoordenacao}`);
+          autoTable(doc, {
+            startY: currentY,
+            head: tableHeaders,
+            body: tableBody,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 168, 89], textColor: [255, 255, 255], fontSize: 8 },
+            styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+            columnStyles: {
+              0: { fontStyle: 'bold', cellWidth: 25 },
+              1: { cellWidth: 20 },
+              2: { cellWidth: 25 },
+              3: { cellWidth: 30 },
+              4: { cellWidth: 30 },
+              5: { cellWidth: 40 },
+              6: { cellWidth: 40 },
+              7: { cellWidth: 30 },
+              8: { cellWidth: 30 }
+            }
+          });
         } else {
-          addPDFSection("Observações do Professor", targetData.description);
-          addPDFSection("Tom do Texto", targetData.tone);
+          const addPDFSection = (title: string, content: string) => {
+            if (!content) return;
+            if (currentY > 250) { doc.addPage(); currentY = 20; }
+            doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(0, 168, 89);
+            doc.text(title, 14, currentY); currentY += 8;
+            doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+            const splitText = doc.splitTextToSize(content, pageWidth - 28);
+            doc.text(splitText, 14, currentY); currentY += (splitText.length * 5) + 10;
+          };
+
+          if (activeTab === 'planejamento-diario') {
+            addPDFSection("Objetivos da Aula", targetData.objectives);
+            addPDFSection("Conteúdo / Atividades Planejadas", targetData.content);
+            addPDFSection("Recursos Didáticos", targetData.resources);
+            addPDFSection("Avaliação / Observações", targetData.evaluation);
+          } else if (activeTab === 'registro-mensal') {
+            addPDFSection("1. Identificação e Carga Horária", `Professor: ${targetData.professorName}\nDisciplina: ${targetData.discipline}\nUnidade: ${targetData.schoolUnit}\nTotal Aulas Dadas: ${targetData.totalAulasDadas}\nAulas Previstas: ${targetData.aulasPrevistas}\nAulas Pendentes: ${targetData.aulasPendentes}\nHoras APD: ${targetData.apdHours}`);
+            addPDFSection("2. Conteúdos e Metodologias", `Conteúdos: ${targetData.content}\nMetodologias: ${targetData.metodologias}`);
+            addPDFSection("3. Avaliações e Materiais", `Avaliações: ${targetData.evaluation}\nMateriais: ${targetData.materiaisDidaticos}`);
+            addPDFSection("4. Frequência e Comportamento", `Frequência: ${targetData.frequenciaDiaria}\nJustificativas: ${targetData.justificativasFaltas}\nComportamento: ${targetData.obsComportamento}`);
+            addPDFSection("5. Relacionamento Escola-Comunidade", `Comunicação: ${targetData.comunicacaoResponsaveis}\nConselhos: ${targetData.participacaoConselhos}\nAtividades Coletivas: ${targetData.atividadesColetivas}`);
+            addPDFSection("6. Reflexão e Desenvolvimento", `Formação: ${targetData.formacaoContinuada}\nAutoavaliação: ${targetData.autoavaliacao}\nFeedback: ${targetData.feedbackCoordenacao}`);
+          } else {
+            addPDFSection("Observações do Professor", targetData.description);
+            addPDFSection("Tom do Texto", targetData.tone);
+          }
         }
 
         // Footer
@@ -617,10 +767,14 @@ export default function Dashboard({
                           value={formData.bnccCodes}
                           onChange={(e) => {
                             const selectedOptions = Array.from(e.target.selectedOptions, (option: any) => option.value);
+                            if (selectedOptions.length > 3) {
+                              alert("Você pode selecionar no máximo 3 códigos BNCC.");
+                              return;
+                            }
                             setFormData({ ...formData, bnccCodes: selectedOptions });
                           }}
                           disabled={isBnccLoading}
-                          className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white text-sm"
+                          className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white text-sm ${formData.bnccCodes.length > 0 ? 'border-[#00A859]' : 'border-black/10'}`}
                         >
                           {dbBnccCodes.map((bncc) => (
                             <option key={bncc.id} value={bncc.codigo} className="py-2 px-2 border-b border-black/5 hover:bg-black/5 cursor-pointer">
@@ -628,8 +782,26 @@ export default function Dashboard({
                             </option>
                           ))}
                         </select>
-                        <p className="text-[10px] text-black/40 mt-1">Segure CTRL (ou CMD) para selecionar múltiplos códigos.</p>
+                        <p className="text-[10px] text-black/40 mt-1">Segure CTRL (ou CMD) para selecionar até 3 códigos.</p>
                       </div>
+
+                      {/* Display Selected Pills */}
+                      {formData.bnccCodes.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {formData.bnccCodes.map(code => (
+                            <div key={code} className="flex items-center gap-1.5 px-3 py-1 bg-[#00A859]/10 text-[#00A859] rounded-full text-xs font-bold border border-[#00A859]/20">
+                              {code}
+                              <button 
+                                type="button"
+                                onClick={() => setFormData({ ...formData, bnccCodes: formData.bnccCodes.filter(c => c !== code) })}
+                                className="hover:text-red-500 transition-colors"
+                              >
+                                <Icons.X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                       <div className="mt-2 space-y-2">
                         <label className="text-[10px] font-bold text-black/40 uppercase tracking-wider">Adicionar Código BNCC (opcional)</label>
@@ -643,6 +815,10 @@ export default function Dashboard({
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();
+                                if (formData.bnccCodes.length >= 3) {
+                                  alert("Você já atingiu o limite de 3 códigos BNCC.");
+                                  return;
+                                }
                                 if (manualBnccInput.trim() && !formData.bnccCodes.includes(manualBnccInput.trim())) {
                                   setFormData({ ...formData, bnccCodes: [...formData.bnccCodes, manualBnccInput.trim()] });
                                   setManualBnccInput('');
@@ -734,6 +910,163 @@ export default function Dashboard({
                           className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all resize-none"
                         />
                       </div>
+                    </div>
+                  </div>
+                ) : activeTab === 'planejamento-semanal' ? (
+                  /* Planejamento Semanal - 5 Day Grid */
+                  <div className="space-y-6">
+                    <div className="bg-black/5 p-6 rounded-2xl overflow-x-auto">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-black/30 mb-6">Grade Semanal (Segunda a Sexta)</h4>
+                      
+                      <table className="w-full min-w-[1200px] border-collapse">
+                        <thead>
+                          <tr className="text-left border-b border-black/10">
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-32">Dia</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-32">Turno</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-32">Horário</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-40">Campo Exp.</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-48">Códigos BNCC</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Atividade</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Objetivo (EI01)</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Acompanhamento</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Observações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/5">
+                          {['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'].map((day) => (
+                            <tr key={day} className="group">
+                              <td className="py-4 pr-4 align-top">
+                                <span className="text-sm font-bold text-black/80">{day}</span>
+                              </td>
+                              <td className="py-4 pr-4 align-top">
+                                <select
+                                  value={formData.weeklyData?.[day]?.turno || ''}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    weeklyData: {
+                                      ...formData.weeklyData,
+                                      [day]: { ...(formData.weeklyData?.[day] || {}), turno: e.target.value }
+                                    }
+                                  })}
+                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none bg-white"
+                                >
+                                  <option value="">Selecione</option>
+                                  <option value="Manhã">Manhã</option>
+                                  <option value="Tarde">Tarde</option>
+                                  <option value="Integral">Integral</option>
+                                </select>
+                              </td>
+                              <td className="py-4 pr-4 align-top">
+                                <input
+                                  type="text"
+                                  placeholder="____ às ____"
+                                  value={formData.weeklyData?.[day]?.horario || ''}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    weeklyData: {
+                                      ...formData.weeklyData,
+                                      [day]: { ...(formData.weeklyData?.[day] || {}), horario: e.target.value }
+                                    }
+                                  })}
+                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none"
+                                />
+                              </td>
+                              <td className="py-4 pr-4 align-top">
+                                <input
+                                  type="text"
+                                  placeholder="Ex: EI0"
+                                  value={formData.weeklyData?.[day]?.campoExperiencia || ''}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    weeklyData: {
+                                      ...formData.weeklyData,
+                                      [day]: { ...(formData.weeklyData?.[day] || {}), campoExperiencia: e.target.value }
+                                    }
+                                  })}
+                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none"
+                                />
+                              </td>
+                              <td className="py-4 pr-4 align-top">
+                                <div className="space-y-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Códigos (Ex: EF01LP01)"
+                                    value={formData.weeklyData?.[day]?.bnccCodes?.join(', ') || ''}
+                                    onChange={(e) => {
+                                      const codes = e.target.value.split(',').map(c => c.trim()).filter(c => c !== '');
+                                      setFormData({
+                                        ...formData,
+                                        weeklyData: {
+                                          ...formData.weeklyData,
+                                          [day]: { ...(formData.weeklyData?.[day] || {}), bnccCodes: codes.slice(0, 3) }
+                                        }
+                                      });
+                                    }}
+                                    className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none"
+                                  />
+                                  <p className="text-[9px] text-black/30">Até 3 códigos separados por vírgula.</p>
+                                </div>
+                              </td>
+                              <td className="py-4 pr-4 align-top">
+                                <textarea
+                                  rows={2}
+                                  value={formData.weeklyData?.[day]?.atividade || ''}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    weeklyData: {
+                                      ...formData.weeklyData,
+                                      [day]: { ...(formData.weeklyData?.[day] || {}), atividade: e.target.value }
+                                    }
+                                  })}
+                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none resize-none"
+                                />
+                              </td>
+                              <td className="py-4 pr-4 align-top">
+                                <textarea
+                                  rows={2}
+                                  value={formData.weeklyData?.[day]?.objetivo || ''}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    weeklyData: {
+                                      ...formData.weeklyData,
+                                      [day]: { ...(formData.weeklyData?.[day] || {}), objetivo: e.target.value }
+                                    }
+                                  })}
+                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none resize-none"
+                                />
+                              </td>
+                              <td className="py-4 pr-4 align-top">
+                                <textarea
+                                  rows={2}
+                                  value={formData.weeklyData?.[day]?.acompanhamento || ''}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    weeklyData: {
+                                      ...formData.weeklyData,
+                                      [day]: { ...(formData.weeklyData?.[day] || {}), acompanhamento: e.target.value }
+                                    }
+                                  })}
+                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none resize-none"
+                                />
+                              </td>
+                              <td className="py-4 align-top">
+                                <textarea
+                                  rows={2}
+                                  value={formData.weeklyData?.[day]?.observacoes || ''}
+                                  onChange={(e) => setFormData({
+                                    ...formData,
+                                    weeklyData: {
+                                      ...formData.weeklyData,
+                                      [day]: { ...(formData.weeklyData?.[day] || {}), observacoes: e.target.value }
+                                    }
+                                  })}
+                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none resize-none"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 ) : activeTab === 'registro-mensal' ? (
@@ -986,7 +1319,7 @@ export default function Dashboard({
                   <div className="bg-black/5 p-6 rounded-2xl space-y-6">
                     <h4 className="text-sm font-black uppercase tracking-widest text-black/30">Detalhes do Registro</h4>
                     <div className="grid md:grid-cols-2 gap-6">
-                      {activeTab !== 'relatorios-turma' && activeTab !== 'diario-semanal' && (
+                      {activeTab !== 'relatorios-turma' && activeTab !== 'planejamento-semanal' && (
                         <div className="space-y-2">
                           <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Nome do Aluno</label>
                           {formData.turma ? (

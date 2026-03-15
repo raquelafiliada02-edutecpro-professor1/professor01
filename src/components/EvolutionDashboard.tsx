@@ -13,7 +13,6 @@ import {
   Sparkles,
   GraduationCap,
   School,
-  CheckSquare,
   Book,
   Megaphone,
   HelpCircle,
@@ -85,7 +84,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
     {
       title: 'Registros Pedagógicos',
       items: [
-        { id: 'diario-semanal', label: 'Diário Semanal', icon: Calendar },
+        { id: 'planejamento-semanal', label: 'Planejamento Semanal', icon: Calendar },
         { id: 'registro-mensal', label: 'Registro Mensal', icon: ClipboardList },
         { id: 'planejamento-diario', label: 'Planejamento Diário', icon: FileEdit },
       ]
@@ -95,7 +94,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
       items: [
         { id: 'relatorio-individual', label: 'Relatório Individual', icon: FileText },
         { id: 'parecer-pcd', label: 'Parecer PCD', icon: Accessibility },
-        { id: 'parecer-final', label: 'Parecer Final (IA)', icon: Sparkles },
+        { id: 'parecer-final', label: 'Parecer Final (Análise)', icon: Sparkles },
       ]
     },
     {
@@ -173,7 +172,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
               {[
                 { date: '2024-03-15', type: 'Parecer Pedagógico', title: 'Desenvolvimento Socioemocional', status: 'Finalizado' },
                 { date: '2024-02-28', type: 'Relatório Mensal', title: 'Acompanhamento de Alfabetização', status: 'Finalizado' },
-                { date: '2024-02-10', type: 'Diário Semanal', title: 'Participação em Atividades em Grupo', status: 'Finalizado' },
+                { date: '2024-02-10', type: 'Planejamento Semanal', title: 'Participação em Atividades em Grupo', status: 'Finalizado' },
               ].map((item, idx) => (
                 <div key={idx} className="bg-white p-6 rounded-2xl border border-black/5 flex items-center justify-between group hover:border-[#00A859] transition-all">
                   <div className="flex items-center gap-4">
@@ -196,7 +195,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
           <div className="space-y-6">
             <h3 className="text-xl font-black tracking-tight flex items-center gap-2">
               <Sparkles size={24} className="text-[#00A859]" />
-              Insights IA
+              Insights de Análise
             </h3>
             <div className="bg-gradient-to-br from-[#00A859] to-[#008F4C] p-6 rounded-[32px] text-white space-y-4 shadow-lg shadow-[#00A859]/20">
               <p className="text-sm leading-relaxed opacity-90">
@@ -206,7 +205,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
               </p>
               <button className="w-full py-3 bg-white/20 hover:bg-white/30 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <Sparkles size={16} />
-                Gerar Novo Parecer IA
+                Análise
               </button>
             </div>
           </div>

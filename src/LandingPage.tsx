@@ -37,9 +37,9 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
 
   const features = [
     { title: 'Relatórios Ilimitados', desc: 'Produza quantos relatórios precisar sem restrições.', icon: FileText },
-    { title: 'BNCC Automática', desc: 'Gere planos e pareceres alinhados à BNCC com IA.', icon: Zap },
+    { title: 'BNCC Automática', desc: 'Gere planos e pareceres alinhados à BNCC com Análise.', icon: Zap },
     { title: 'Exportação PDF', desc: 'Baixe seus documentos prontos para impressão.', icon: BookOpen },
-    { title: 'Parecer Final IA', desc: 'Gerador automático de pareceres conclusivos.', icon: Sparkles },
+    { title: 'Parecer Final (Análise)', desc: 'Gerador automático de pareceres conclusivos.', icon: Sparkles },
   ];
 
   const handleUpgradeClick = async () => {
@@ -75,14 +75,14 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
     const isFree = selectedPlanView === 'free';
     const planFeatures = isFree ? [
       { label: 'Relatório Individual (1/dia)', icon: FileText },
-      { label: 'Diário Semanal (1/semana)', icon: Calendar },
+      { label: 'Planejamento Semanal (1/semana)', icon: Calendar },
       { label: 'Registro Mensal (1/mês)', icon: ClipboardList },
       { label: 'Plano de Aula (1/semana)', icon: BookOpen },
       { label: 'Banco de frases (2/semana)', icon: MessageSquare },
     ] : [
       { label: 'Relatórios ilimitados', icon: FileText },
       { label: 'Parecer PCD disponível', icon: Accessibility },
-      { label: 'BNCC automática com IA', icon: Zap },
+      { label: 'BNCC automática com Análise', icon: Zap },
       { label: 'Banco de frases completo', icon: MessageSquare },
       { label: 'Exportar relatórios em PDF', icon: FileDown },
       { label: 'Gerador de parecer final', icon: Sparkles },
@@ -306,7 +306,7 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
               <ul className="space-y-3 md:space-y-4 mb-8 md:mb-10 flex-1">
                 {[
                   'Relatório Individual (1/dia)',
-                  'Diário Semanal (1/semana)',
+                  'Planejamento Semanal (1/semana)',
                   'Registro Mensal (1/mês)',
                   'Plano de Aula (1/semana)',
                   'Banco de frases (2/semana)'
@@ -342,7 +342,7 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
                 {[
                   'Relatórios ilimitados',
                   'Parecer PCD disponível',
-                  'BNCC automática com IA',
+                  'BNCC automática com Análise',
                   'Banco de frases completo',
                   'Exportar relatórios em PDF',
                   'Gerador de parecer final',
