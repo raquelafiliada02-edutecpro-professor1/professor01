@@ -57,15 +57,25 @@ export interface PedagogicalRecord {
   apdHours?: string;
   frequenciaDiaria?: string;
   justificativasFaltas?: string;
+  turmaId?: string;
+  etapa?: 'EI' | 'EF';
+  faixaEtaria?: string;
+  blocoAnos?: string;
+  componenteCurricular?: string;
   // Weekly Grid Data
   weeklyData?: {
     [key: string]: {
+      id?: string;
       turno?: string;
       horario?: string;
+      etapa?: 'EI' | 'EF';
+      faixaEtaria?: string;
+      blocoAnos?: string;
       campoExperiencia?: string;
+      componenteCurricular?: string;
       bnccCodes?: string[];
       atividade?: string;
-      objetivo?: string;
+      objetivo_aprendizagem?: string;
       acompanhamento?: string;
       observacoes?: string;
     };

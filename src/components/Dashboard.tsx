@@ -13,6 +13,8 @@ import { bnccCodesList } from '../lib/bnccCodes';
 import DataRetentionBanner from './DataRetentionBanner';
 import { useBncc } from '../hooks/useBncc';
 
+
+
 interface DashboardProps {
   userId: string;
   userEmail: string;
@@ -48,7 +50,10 @@ export default function Dashboard({
 
   // Supabase dynamic students for forms
   const [supabaseStudents, setSupabaseStudents] = useState<Student[]>([]);
+  const [supaTurmas, setSupaTurmas] = useState<{ id: string; nome: string }[]>([]);
   const [manualBnccInput, setManualBnccInput] = useState('');
+  const [selectedCampo, setSelectedCampo] = useState('');
+  const [selectedFaixa, setSelectedFaixa] = useState('');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [recordForExport, setRecordForExport] = useState<PedagogicalRecord | null>(null);
   const { bnccCodes: dbBnccCodes, isLoading: isBnccLoading } = useBncc();
@@ -69,6 +74,21 @@ export default function Dashboard({
       }
     };
     fetchStudents();
+
+    const fetchTurmas = async () => {
+      if (!userId) return;
+      try {
+        const { data } = await supabase
+          .from('turmas')
+          .select('id, nome')
+          .eq('professor_id', userId)
+          .order('nome');
+        if (data) setSupaTurmas(data);
+      } catch (err) {
+        console.error('Erro ao buscar turmas:', err);
+      }
+    };
+    fetchTurmas();
   }, [userId]);
 
   // Form state
@@ -106,6 +126,12 @@ export default function Dashboard({
     formacaoContinuada: '',
     autoavaliacao: '',
     feedbackCoordenacao: '',
+    turmaId: '',
+    etapa: '' as 'EI' | 'EF' | '',
+    faixaEtaria: '',
+    blocoAnos: '',
+    componenteCurricular: '',
+    weeklyData: null as any,
     exportFormat: 'pdf' as 'pdf' | 'csv'
   });
 
@@ -195,12 +221,17 @@ export default function Dashboard({
         formacaoContinuada: record.formacaoContinuada || '',
         autoavaliacao: record.autoavaliacao || '',
         feedbackCoordenacao: record.feedbackCoordenacao || '',
+        turmaId: record.turmaId || '',
+        etapa: record.etapa || '',
+        faixaEtaria: record.faixaEtaria || '',
+        blocoAnos: record.blocoAnos || '',
+        componenteCurricular: record.componenteCurricular || '',
         weeklyData: record.weeklyData || {
-          'Segunda-feira': {},
-          'Terça-feira': {},
-          'Quarta-feira': {},
-          'Quinta-feira': {},
-          'Sexta-feira': {}
+          'Segunda-feira': { bnccCodes: [], objetivo_aprendizagem: '' },
+          'Terça-feira': { bnccCodes: [], objetivo_aprendizagem: '' },
+          'Quarta-feira': { bnccCodes: [], objetivo_aprendizagem: '' },
+          'Quinta-feira': { bnccCodes: [], objetivo_aprendizagem: '' },
+          'Sexta-feira': { bnccCodes: [], objetivo_aprendizagem: '' }
         },
         exportFormat: 'pdf'
       });
@@ -251,12 +282,17 @@ export default function Dashboard({
         resources: '',
         evaluation: '',
         weeklyData: {
-          'Segunda-feira': { bnccCodes: [] },
-          'Terça-feira': { bnccCodes: [] },
-          'Quarta-feira': { bnccCodes: [] },
-          'Quinta-feira': { bnccCodes: [] },
-          'Sexta-feira': { bnccCodes: [] }
+          'Segunda-feira': { bnccCodes: [], objetivo_aprendizagem: '' },
+          'Terça-feira': { bnccCodes: [], objetivo_aprendizagem: '' },
+          'Quarta-feira': { bnccCodes: [], objetivo_aprendizagem: '' },
+          'Quinta-feira': { bnccCodes: [], objetivo_aprendizagem: '' },
+          'Sexta-feira': { bnccCodes: [], objetivo_aprendizagem: '' }
         },
+        turmaId: '',
+        etapa: '',
+        faixaEtaria: '',
+        blocoAnos: '',
+        componenteCurricular: '',
         exportFormat: 'pdf'
       });
     }
@@ -336,26 +372,36 @@ export default function Dashboard({
         for (const dia of days) {
           const dayData = formData.weeklyData![dia];
           // Determine existing ID or create new one for the day row
-          const dayId = editingRecord?.weeklyData?.[dia]?.id || crypto.randomUUID();
+          const dayId = dayData.id || crypto.randomUUID();
           
+          // Get the first BNCC code ID for the main table column, if any
+          const firstBnccCode = dayData.bnccCodes?.[0];
+          const firstBnccId = firstBnccCode ? dbBnccCodes.find(b => b.codigo === firstBnccCode)?.id : null;
+
           const recordDataDay = {
             id: dayId,
             professor_id: userId,
-            parent_doc_id: recordIdToSave,
+            turma_id: formData.turmaId || null,
             dia_semana: dia,
             turno: dayData.turno || '',
             horario: dayData.horario || '',
             campo_experiencia: dayData.campoExperiencia || '',
+            componente_curricular: dayData.componenteCurricular || '',
+            etapa: formData.etapa || null,
+            faixa_etaria: formData.faixaEtaria || null,
+            bloco_anos: formData.blocoAnos || null,
+            bncc_code_id: firstBnccId,
             atividade: dayData.atividade || '',
-            objetivo: dayData.objetivo || '',
+            objetivo_aprendizagem: dayData.objetivo_aprendizagem || '',
             acompanhamento: dayData.acompanhamento || '',
             observacoes: dayData.observacoes || '',
             created_at: new Date().toISOString()
           };
 
-          await supabase.from('planejamento_semanal').upsert(recordDataDay);
+          const { error: dayError } = await supabase.from('planejamento_semanal').upsert(recordDataDay);
+          if (dayError) throw dayError;
 
-          // Save BNCC links for this specific day
+          // Save BNCC links for this specific day (multi-select up to 3)
           if (dayData.bnccCodes && dayData.bnccCodes.length > 0) {
             const selectedBnccIds = dbBnccCodes
               .filter(b => dayData.bnccCodes!.includes(b.codigo))
@@ -521,11 +567,16 @@ export default function Dashboard({
         if (targetData.period) infoData.push(['Período', targetData.period]);
         
         if (!isWeekly && targetData.bnccCodes && targetData.bnccCodes.length > 0) {
-          const bnccInfo = targetData.bnccCodes.map(code => {
+          const bnccInfoRows = targetData.bnccCodes.map(code => {
             const dbRef = dbBnccCodes.find(b => b.codigo === code);
-            return dbRef ? `${code}: ${dbRef.descricao}` : code;
-          }).join('\n');
-          infoData.push(['BNCC', bnccInfo]);
+            if (!dbRef) return code;
+            
+            let info = `Código: ${code}`;
+            if (dbRef.campo_experiencia) info += `\nCampo: ${dbRef.campo_experiencia}`;
+            info += `\nObjetivo: ${dbRef.objetivo_aprendizagem || dbRef.descricao}`;
+            return info;
+          });
+          infoData.push(['BNCC', bnccInfoRows.join('\n\n')]);
         }
 
         autoTable(doc, {
@@ -549,7 +600,7 @@ export default function Dashboard({
               dayData.campoExperiencia || '-',
               (dayData.bnccCodes || []).join(', ') || '-',
               dayData.atividade || '-',
-              dayData.objetivo || '-',
+              dayData.objetivo_aprendizagem || '-',
               dayData.acompanhamento || '-',
               dayData.observacoes || '-'
             ];
@@ -758,32 +809,83 @@ export default function Dashboard({
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Códigos BNCC (Opcional)</label>
-                      {/* Selector Multiple BNCC */}
-                      <div className="relative">
-                        <select
-                          multiple
-                          size={5}
-                          value={formData.bnccCodes}
-                          onChange={(e) => {
-                            const selectedOptions = Array.from(e.target.selectedOptions, (option: any) => option.value);
-                            if (selectedOptions.length > 3) {
-                              alert("Você pode selecionar no máximo 3 códigos BNCC.");
-                              return;
-                            }
-                            setFormData({ ...formData, bnccCodes: selectedOptions });
-                          }}
-                          disabled={isBnccLoading}
-                          className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white text-sm ${formData.bnccCodes.length > 0 ? 'border-[#00A859]' : 'border-black/10'}`}
-                        >
-                          {dbBnccCodes.map((bncc) => (
-                            <option key={bncc.id} value={bncc.codigo} className="py-2 px-2 border-b border-black/5 hover:bg-black/5 cursor-pointer">
-                              {bncc.codigo} - {bncc.descricao.substring(0, 60)}{bncc.descricao.length > 60 ? '...' : ''}
-                            </option>
-                          ))}
-                        </select>
-                        <p className="text-[10px] text-black/40 mt-1">Segure CTRL (ou CMD) para selecionar até 3 códigos.</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-black/40 uppercase tracking-wider">Filtrar por Faixa Etária</label>
+                          <select
+                            value={selectedFaixa}
+                            onChange={(e) => setSelectedFaixa(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] outline-none transition-all bg-white text-sm"
+                          >
+                            <option value="">Todas as Faixas</option>
+                            {Array.from(new Set(dbBnccCodes.map(b => b.faixa_etaria).filter(Boolean))).sort().map(faixa => (
+                              <option key={faixa} value={faixa!}>{faixa}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-black/40 uppercase tracking-wider">Filtrar por Campo de Experiência</label>
+                          <select
+                            value={selectedCampo}
+                            onChange={(e) => setSelectedCampo(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] outline-none transition-all bg-white text-sm"
+                          >
+                            <option value="">Todos os Campos</option>
+                            {Array.from(new Set(dbBnccCodes.map(b => b.campo_experiencia).filter(Boolean))).sort().map(campo => (
+                              <option key={campo} value={campo!}>{campo}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-black/40 uppercase tracking-wider">Seleção de Códigos BNCC (Até 3) *</label>
+                          <select
+                            multiple
+                            size={5}
+                            value={formData.bnccCodes}
+                            onChange={(e) => {
+                              const selectedOptions = Array.from(e.target.selectedOptions, (option: any) => option.value);
+                              if (selectedOptions.length > 3) {
+                                alert("Você pode selecionar no máximo 3 códigos BNCC.");
+                                return;
+                              }
+                              setFormData({ ...formData, bnccCodes: selectedOptions });
+                            }}
+                            disabled={isBnccLoading}
+                            className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white text-sm ${formData.bnccCodes.length > 0 ? 'border-[#00A859]' : 'border-black/10'}`}
+                          >
+                            {dbBnccCodes
+                              .filter(bncc => (!selectedFaixa || bncc.faixa_etaria === selectedFaixa) && (!selectedCampo || bncc.campo_experiencia === selectedCampo))
+                              .map((bncc) => (
+                              <option key={bncc.id} value={bncc.codigo} className="py-2 px-2 border-b border-black/5 hover:bg-black/5 cursor-pointer">
+                                {bncc.codigo} - {bncc.descricao.substring(0, 60)}{bncc.descricao.length > 60 ? '...' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
+
+                      {/* Display Objectives for Selected Codes */}
+                      {formData.bnccCodes.length > 0 && (
+                        <div className="mt-4 p-4 bg-black/5 rounded-2xl space-y-3">
+                          <h5 className="text-[10px] font-black uppercase tracking-widest text-black/30">Objetivos de Aprendizagem Selecionados</h5>
+                          {formData.bnccCodes.map(code => {
+                            const bncc = dbBnccCodes.find(b => b.codigo === code);
+                            return (
+                              <div key={code} className="text-xs space-y-1 pb-2 border-b border-black/5 last:border-0 last:pb-0 text-left">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-[#00A859]">{code}</span>
+                                  <span className="text-[10px] text-black/40 italic">{bncc?.campo_experiencia}</span>
+                                </div>
+                                <p className="text-black/70 leading-relaxed">
+                                  {bncc?.objetivo_aprendizagem || bncc?.descricao || 'Objetivo não especificado'}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {/* Display Selected Pills */}
                       {formData.bnccCodes.length > 0 && (
@@ -915,6 +1017,130 @@ export default function Dashboard({
                 ) : activeTab === 'planejamento-semanal' ? (
                   /* Planejamento Semanal - 5 Day Grid */
                   <div className="space-y-6">
+                     <div className="bg-black/5 p-6 rounded-2xl">
+                       <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4 md:col-span-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">1. Selecione a Etapa *</label>
+                          <div className="flex gap-4">
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, etapa: 'EI' })}
+                              className={cn(
+                                "flex-1 py-3 px-4 rounded-xl border-2 transition-all font-bold flex items-center justify-center gap-2",
+                                formData.etapa === 'EI' ? "border-[#00A859] bg-[#00A859]/5 text-[#00A859]" : "border-black/5 bg-white text-black/40 hover:border-black/10"
+                              )}
+                            >
+                              <Icons.Baby size={20} />
+                              Educação Infantil (EI)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, etapa: 'EF' })}
+                              className={cn(
+                                "flex-1 py-3 px-4 rounded-xl border-2 transition-all font-bold flex items-center justify-center gap-2",
+                                formData.etapa === 'EF' ? "border-[#00A859] bg-[#00A859]/5 text-[#00A859]" : "border-black/5 bg-white text-black/40 hover:border-black/10"
+                              )}
+                            >
+                              <Icons.GraduationCap size={20} />
+                              Ensino Fundamental (EF)
+                            </button>
+                          </div>
+                        </div>
+
+                        {formData.etapa === 'EI' && (
+                          <>
+                            <div className="space-y-2">
+                              <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Faixa Etária *</label>
+                              <select
+                                required
+                                value={formData.faixaEtaria}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, faixaEtaria: e.target.value });
+                                  setSelectedFaixa(e.target.value);
+                                }}
+                                className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white font-medium"
+                              >
+                                <option value="">Selecione a Faixa Etária</option>
+                                <option value="Bebês">EI01 → Bebês (0 a 1 ano e 6 meses)</option>
+                                <option value="Crianças bem pequenas">EI02 → Crianças bem pequenas (1a7m a 3a11m)</option>
+                                <option value="Crianças pequenas">EI03 → Crianças pequenas (4a a 5a11m)</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Campo de Experiência (BNCC) *</label>
+                              <select
+                                required
+                                value={selectedCampo}
+                                onChange={(e) => setSelectedCampo(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white font-medium"
+                              >
+                                <option value="">Selecione o Campo</option>
+                                <option value="O eu, o outro e o nós">O eu, o outro e o nós</option>
+                                <option value="Corpo, gestos e movimentos">Corpo, gestos e movimentos</option>
+                                <option value="Traços, sons, cores e formas">Traços, sons, cores e formas</option>
+                                <option value="Escuta, fala, pensamento e imaginação">Escuta, fala, pensamento e imaginação</option>
+                                <option value="Espaços, tempos, quantidades, relações e transformações">Espaços, tempos, quantidades, relações e transformações</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+
+                        {formData.etapa === 'EF' && (
+                          <>
+                            <div className="space-y-2">
+                              <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Bloco de Anos *</label>
+                              <select
+                                required
+                                value={formData.blocoAnos}
+                                onChange={(e) => setFormData({ ...formData, blocoAnos: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white font-medium"
+                              >
+                                <option value="">Selecione o Bloco</option>
+                                <option value="EF11">EF11 → 1º e 2º anos</option>
+                                <option value="EF35">EF35 → 3º ao 5º anos</option>
+                                <option value="EF67">EF67 → 6º e 7º anos</option>
+                                <option value="EF89">EF89 → 8º e 9º anos</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Componente Curricular *</label>
+                              <select
+                                required
+                                value={formData.componenteCurricular}
+                                onChange={(e) => setFormData({ ...formData, componenteCurricular: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white font-medium"
+                              >
+                                <option value="">Selecione o Componente</option>
+                                <option value="LP">Língua Portuguesa</option>
+                                <option value="MA">Matemática</option>
+                                <option value="CI">Ciências</option>
+                                <option value="EF">Educação Física</option>
+                                <option value="AR">Arte</option>
+                                <option value="ER">Ensino Religioso</option>
+                                <option value="GE">Geografia</option>
+                                <option value="HI">História</option>
+                                <option value="LI">Língua Inglesa</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-sm font-bold text-black/60 uppercase tracking-wider">Turma / Grupo *</label>
+                          <select
+                            required
+                            value={formData.turmaId}
+                            onChange={(e) => setFormData({ ...formData, turmaId: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white font-medium"
+                          >
+                            <option value="">Selecione a Turma</option>
+                            {supaTurmas.map((t) => (
+                              <option key={t.id} value={t.id}>{t.nome}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="bg-black/5 p-6 rounded-2xl overflow-x-auto">
                       <h4 className="text-sm font-black uppercase tracking-widest text-black/30 mb-6">Grade Semanal (Segunda a Sexta)</h4>
                       
@@ -924,10 +1150,10 @@ export default function Dashboard({
                             <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-32">Dia</th>
                             <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-32">Turno</th>
                             <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-32">Horário</th>
-                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-40">Campo Exp.</th>
-                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-48">Códigos BNCC</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-48">Campo de Experiência</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-56">Código BNCC</th>
                             <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Atividade</th>
-                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Objetivo (EI01)</th>
+                            <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Objetivo de Aprendizagem</th>
                             <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Acompanhamento</th>
                             <th className="pb-3 text-[10px] font-black uppercase tracking-tighter text-black/40 w-64">Observações</th>
                           </tr>
@@ -948,12 +1174,12 @@ export default function Dashboard({
                                       [day]: { ...(formData.weeklyData?.[day] || {}), turno: e.target.value }
                                     }
                                   })}
-                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none bg-white"
+                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-[11px] focus:border-[#00A859] outline-none bg-white font-medium"
                                 >
                                   <option value="">Selecione</option>
                                   <option value="Manhã">Manhã</option>
                                   <option value="Tarde">Tarde</option>
-                                  <option value="Integral">Integral</option>
+                                  <option value="Noite">Noite</option>
                                 </select>
                               </td>
                               <td className="py-4 pr-4 align-top">
@@ -972,44 +1198,138 @@ export default function Dashboard({
                                 />
                               </td>
                               <td className="py-4 pr-4 align-top">
-                                <input
-                                  type="text"
-                                  placeholder="Ex: EI0"
-                                  value={formData.weeklyData?.[day]?.campoExperiencia || ''}
-                                  onChange={(e) => setFormData({
-                                    ...formData,
-                                    weeklyData: {
-                                      ...formData.weeklyData,
-                                      [day]: { ...(formData.weeklyData?.[day] || {}), campoExperiencia: e.target.value }
-                                    }
-                                  })}
-                                  className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none"
-                                />
+                                <div className="text-[11px] font-bold text-black/70 bg-black/5 p-2 rounded-lg">
+                                  {formData.etapa === 'EF' ? (formData.blocoAnos || '-') : (formData.faixaEtaria || '-')}
+                                </div>
                               </td>
                               <td className="py-4 pr-4 align-top">
-                                <div className="space-y-1">
-                                  <input
-                                    type="text"
-                                    placeholder="Códigos (Ex: EF01LP01)"
-                                    value={formData.weeklyData?.[day]?.bnccCodes?.join(', ') || ''}
-                                    onChange={(e) => {
-                                      const codes = e.target.value.split(',').map(c => c.trim()).filter(c => c !== '');
-                                      setFormData({
-                                        ...formData,
-                                        weeklyData: {
-                                          ...formData.weeklyData,
-                                          [day]: { ...(formData.weeklyData?.[day] || {}), bnccCodes: codes.slice(0, 3) }
-                                        }
-                                      });
-                                    }}
-                                    className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none"
-                                  />
-                                  <p className="text-[9px] text-black/30">Até 3 códigos separados por vírgula.</p>
+                                {formData.etapa === 'EF' ? (
+                                  <select
+                                    value={formData.weeklyData?.[day]?.componenteCurricular || ''}
+                                    onChange={(e) => setFormData({
+                                      ...formData,
+                                      weeklyData: {
+                                        ...formData.weeklyData,
+                                        [day]: { ...(formData.weeklyData?.[day] || {}), componenteCurricular: e.target.value }
+                                      }
+                                    })}
+                                    className="w-full px-2 py-2 rounded-lg border border-black/10 text-[10px] focus:border-[#00A859] outline-none bg-white font-medium"
+                                  >
+                                    <option value="">Componente</option>
+                                    <option value="LP">LP (Port.)</option>
+                                    <option value="MA">MA (Mat.)</option>
+                                    <option value="CI">CI (Cien.)</option>
+                                    <option value="EF">EF (EduFis.)</option>
+                                    <option value="AR">AR (Arte)</option>
+                                    <option value="ER">ER (Relig.)</option>
+                                    <option value="GE">GE (Geog.)</option>
+                                    <option value="HI">HI (Hist.)</option>
+                                    <option value="LI">LI (Ingl.)</option>
+                                  </select>
+                                ) : (
+                                  <select
+                                    value={formData.weeklyData?.[day]?.campoExperiencia || ''}
+                                    onChange={(e) => setFormData({
+                                      ...formData,
+                                      weeklyData: {
+                                        ...formData.weeklyData,
+                                        [day]: { ...(formData.weeklyData?.[day] || {}), campoExperiencia: e.target.value }
+                                      }
+                                    })}
+                                    className="w-full px-2 py-2 rounded-lg border border-black/10 text-[10px] focus:border-[#00A859] outline-none bg-white font-medium"
+                                  >
+                                    <option value="">Campo BNCC</option>
+                                    <option value="O eu, o outro e o nós">O eu, o outro e o nós</option>
+                                    <option value="Corpo, gestos e movimentos">Corpo, gestos e movimentos</option>
+                                    <option value="Traços, sons, cores e formas">Traços, sons, cores e formas</option>
+                                    <option value="Escuta, fala, pensamento e imaginação">Escuta, fala, pensamento e imaginação</option>
+                                    <option value="Espaços, tempos, quantidades, relações e transformações">Espaços, tempos, quantidades, relações e transformações</option>
+                                  </select>
+                                )}
+                              </td>
+                              <td className="py-4 pr-4 align-top">
+                                <div className="space-y-2">
+                                      <select
+                                        value=""
+                                        onChange={(e) => {
+                                          if (e.target.value) {
+                                            const currentCodes = formData.weeklyData?.[day]?.bnccCodes || [];
+                                            if (currentCodes.length < 3 && !currentCodes.includes(e.target.value)) {
+                                              const selectedBncc = dbBnccCodes.find(b => b.codigo === e.target.value);
+                                              setFormData({
+                                                ...formData,
+                                                weeklyData: {
+                                                  ...formData.weeklyData,
+                                                  [day]: { 
+                                                    ...(formData.weeklyData?.[day] || {}), 
+                                                    bnccCodes: [...currentCodes, e.target.value],
+                                                    // Auto-fill objective if empty
+                                                    objetivo_aprendizagem: (formData.weeklyData?.[day]?.objetivo_aprendizagem || '') + 
+                                                      (formData.weeklyData?.[day]?.objetivo_aprendizagem ? ' ' : '') + 
+                                                      (selectedBncc?.objetivo_aprendizagem || '')
+                                                  }
+                                                }
+                                              });
+                                            }
+                                          }
+                                        }}
+                                        className="w-full px-2 py-2 rounded-lg border border-black/10 text-[10px] focus:border-[#00A859] outline-none bg-white font-medium"
+                                      >
+                                        <option value="">Adicionar Código</option>
+                                        {dbBnccCodes
+                                          .filter(b => {
+                                            if (formData.etapa === 'EI') {
+                                              return (!formData.faixaEtaria || b.faixa_etaria === formData.faixaEtaria) && 
+                                                     (!formData.weeklyData?.[day]?.campoExperiencia || b.campo_experiencia === formData.weeklyData?.[day]?.campoExperiencia);
+                                            } else if (formData.etapa === 'EF') {
+                                              // Filter by Block and Component prefix
+                                              const codePrefix = b.codigo.substring(0, 6); // e.g. EF01LP
+                                              const blocos = {
+                                                'EF11': ['EF01', 'EF02'],
+                                                'EF35': ['EF03', 'EF04', 'EF05'],
+                                                'EF67': ['EF06', 'EF07'],
+                                                'EF89': ['EF08', 'EF09']
+                                              };
+                                              const selectedBloco = formData.blocoAnos as keyof typeof blocos;
+                                              const matchedBloco = !formData.blocoAnos || blocos[selectedBloco]?.some(prefix => b.codigo.startsWith(prefix));
+                                              const matchedComp = !formData.weeklyData?.[day]?.componenteCurricular || b.codigo.includes(formData.weeklyData?.[day]?.componenteCurricular || '');
+                                              return matchedBloco && matchedComp;
+                                            }
+                                            return true;
+                                          })
+                                          .slice(0, 100) // Performance guard
+                                          .map(b => (
+                                          <option key={b.id} value={b.codigo}>{b.codigo} - {b.descricao.substring(0, 40)}...</option>
+                                        ))}
+                                      </select>
+                                  <div className="flex flex-wrap gap-1">
+                                    {(formData.weeklyData?.[day]?.bnccCodes || []).map(code => (
+                                      <span key={code} className="inline-flex items-center gap-1 bg-[#00A859]/10 text-[#00A859] text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                        {code}
+                                        <button 
+                                          type="button" 
+                                          onClick={() => {
+                                            const currentCodes = formData.weeklyData?.[day]?.bnccCodes || [];
+                                            setFormData({
+                                              ...formData,
+                                              weeklyData: {
+                                                ...formData.weeklyData,
+                                                [day]: { ...(formData.weeklyData?.[day] || {}), bnccCodes: currentCodes.filter(c => c !== code) }
+                                              }
+                                            });
+                                          }}
+                                          className="hover:text-red-500"
+                                        >
+                                          <Icons.X size={10} />
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
                               </td>
                               <td className="py-4 pr-4 align-top">
                                 <textarea
-                                  rows={2}
+                                  rows={3}
                                   value={formData.weeklyData?.[day]?.atividade || ''}
                                   onChange={(e) => setFormData({
                                     ...formData,
@@ -1024,12 +1344,12 @@ export default function Dashboard({
                               <td className="py-4 pr-4 align-top">
                                 <textarea
                                   rows={2}
-                                  value={formData.weeklyData?.[day]?.objetivo || ''}
+                                  value={formData.weeklyData?.[day]?.objetivo_aprendizagem || ''}
                                   onChange={(e) => setFormData({
                                     ...formData,
                                     weeklyData: {
                                       ...formData.weeklyData,
-                                      [day]: { ...(formData.weeklyData?.[day] || {}), objetivo: e.target.value }
+                                      [day]: { ...(formData.weeklyData?.[day] || {}), objetivo_aprendizagem: e.target.value }
                                     }
                                   })}
                                   className="w-full px-2 py-2 rounded-lg border border-black/10 text-xs focus:border-[#00A859] outline-none resize-none"

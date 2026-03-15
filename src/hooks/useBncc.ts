@@ -5,6 +5,10 @@ export interface BnccCode {
     id: string;
     codigo: string;
     descricao: string;
+    campo_experiencia?: string;
+    objetivo_aprendizagem?: string;
+    etapa?: string;
+    faixa_etaria?: string;
 }
 
 const CACHE_KEY = 'edutec_bncc_cache';
@@ -32,7 +36,7 @@ export function useBncc() {
                 // Fetch from Supabase
                 const { data, error: sbError } = await supabase
                     .from('bncc_codes')
-                    .select('id, codigo, descricao')
+                    .select('id, codigo, descricao, campo_experiencia, objetivo_aprendizagem, etapa, faixa_etaria')
                     .order('codigo');
 
                 if (sbError) throw sbError;
