@@ -60,22 +60,6 @@ const studentPerformanceData = [
   { period: '4º Bim', grade: 8.8 },
 ];
 
-const studentAttendanceData = [
-  { period: '1º Bim', rate: 98 },
-  { period: '2º Bim', rate: 95 },
-  { period: '3º Bim', rate: 100 },
-  { period: '4º Bim', rate: 97 },
-];
-
-const attendanceData = [
-  { month: 'Jan', rate: 92 },
-  { month: 'Fev', rate: 94 },
-  { month: 'Mar', rate: 91 },
-  { month: 'Abr', rate: 95 },
-  { month: 'Mai', rate: 96 },
-  { month: 'Jun', rate: 94 },
-];
-
 const distributionData = [
   { name: 'Abaixo de 5', value: 5, color: '#EF4444' },
   { name: '5 a 7', value: 15, color: '#F59E0B' },
@@ -93,7 +77,6 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
 
   const indicators = [
     { label: 'Média Geral', value: '8.2', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Frequência Média', value: '94%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Planos Concluídos', value: '24/30', icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Alunos em Risco', value: '3', icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
   ];
@@ -111,13 +94,12 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
       title: 'Relatórios',
       items: [
         { id: 'relatorio-individual', label: 'Relatório Individual', icon: FileText },
-        { id: 'relatorios-turma', label: 'Relatórios da Turma', icon: Users },
         { id: 'parecer-pcd', label: 'Parecer PCD', icon: Accessibility },
         { id: 'parecer-final', label: 'Parecer Final (IA)', icon: Sparkles },
       ]
     },
     {
-      title: 'Gestão Escolar',
+      title: 'Gestão de Alunos',
       items: [
         { id: 'alunos', label: 'Alunos', icon: Users },
       ]
@@ -147,7 +129,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
         </div>
 
         {/* Individual Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -175,30 +157,6 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
                     activeDot={{ r: 8, strokeWidth: 0 }}
                   />
                 </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm"
-          >
-            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-              <CheckSquare size={20} className="text-blue-600" />
-              Frequência Individual (%)
-            </h3>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={studentAttendanceData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} domain={[0, 100]} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                  />
-                  <Bar dataKey="rate" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={40} />
-                </BarChart>
               </ResponsiveContainer>
             </div>
           </motion.div>
@@ -243,7 +201,6 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
             <div className="bg-gradient-to-br from-[#00A859] to-[#008F4C] p-6 rounded-[32px] text-white space-y-4 shadow-lg shadow-[#00A859]/20">
               <p className="text-sm leading-relaxed opacity-90">
                 Ana Beatriz demonstra excelente progresso em Língua Portuguesa, com aumento de 15% na média desde o 1º bimestre.
-                Sua frequência é exemplar (97.5%).
                 <br /><br />
                 <strong>Recomendação:</strong> Introduzir atividades de desafio em produção textual para manter o engajamento.
               </p>
@@ -264,7 +221,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black tracking-tight">Dashboard de Evolução</h2>
-          <p className="text-black/40 font-medium">Visão geral do desempenho acadêmico e frequência</p>
+          <p className="text-black/40 font-medium">Visão geral do desempenho acadêmico</p>
         </div>
         <button
           onClick={() => setView('individual')}
@@ -276,7 +233,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
       </div>
 
       {/* Indicators */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {indicators.map((indicator, idx) => (
           <motion.div
             key={idx}
@@ -299,7 +256,7 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Evolution Grade Chart */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -329,35 +286,13 @@ export default function EvolutionDashboard({ onNavigate }: EvolutionDashboardPro
           </div>
         </motion.div>
 
-        {/* Attendance Chart */}
+        {/* Distribution Chart */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm"
         >
-          <h3 className="text-lg font-bold mb-6">Frequência por Mês (%)</h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={attendanceData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} domain={[0, 100]} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                />
-                <Bar dataKey="rate" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={30} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        {/* Distribution Chart */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white p-8 rounded-[32px] border border-black/5 shadow-sm lg:col-span-2"
-        >
-          <h3 className="text-lg font-bold mb-6">Distribuição de Notas por Turma</h3>
+          <h3 className="text-lg font-bold mb-6">Distribuição de Notas</h3>
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="h-[250px] w-full md:w-1/2">
               <ResponsiveContainer width="100%" height="100%">

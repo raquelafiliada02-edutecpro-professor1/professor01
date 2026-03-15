@@ -100,8 +100,7 @@ export default function StudentManager({ professorId }: StudentManagerProps) {
     };
 
     const filteredStudents = students.filter(s =>
-        s.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.turma?.toLowerCase().includes(searchTerm.toLowerCase())
+        s.nome.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (isLoading) {
@@ -130,7 +129,7 @@ export default function StudentManager({ professorId }: StudentManagerProps) {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" size={20} />
                     <input
                         type="text"
-                        placeholder="Buscar por nome ou turma..."
+                        placeholder="Buscar por nome..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/5 border-none focus:ring-2 focus:ring-[#00A859]/20 transition-all font-medium"
@@ -142,7 +141,7 @@ export default function StudentManager({ professorId }: StudentManagerProps) {
                         <thead>
                             <tr className="border-b border-black/5">
                                 <th className="text-left font-semibold text-black/60 pb-4 px-4">Nome</th>
-                                <th className="text-left font-semibold text-black/60 pb-4 px-4">Turma/Série</th>
+                                <th className="text-left font-semibold text-black/60 pb-4 px-4">Série/Nível</th>
                                 <th className="text-center font-semibold text-black/60 pb-4 px-4">Status</th>
                                 <th className="text-center font-semibold text-black/60 pb-4 px-4">Recursos</th>
                                 <th className="text-right font-semibold text-black/60 pb-4 px-4">Ações</th>
@@ -160,7 +159,7 @@ export default function StudentManager({ professorId }: StudentManagerProps) {
                                     <tr key={student.id} className="border-b border-black/5 last:border-0 hover:bg-black/5 transition-colors">
                                         <td className="py-4 px-4 font-medium text-black/80">{student.nome}</td>
                                         <td className="py-4 px-4 text-black/60">
-                                            {student.turma}{student.serie ? ` - ${student.serie}` : ''}
+                                            {student.serie || '-'}
                                         </td>
                                         <td className="py-4 px-4 text-center">
                                             <span className={`inline-flex px-2 !py-1 text-xs font-semibold rounded-full ${student.status === 'ativo' ? 'bg-[#00A859]/10 text-[#00A859]' : 'bg-red-100 text-red-600'}`}>
@@ -251,18 +250,9 @@ export default function StudentManager({ professorId }: StudentManagerProps) {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1">
                                 <div>
-                                    <label className="block text-sm font-semibold text-black/70 mb-1.5 focus-within:text-[#00A859]">Turma (Ex: 5º Ano A)</label>
-                                    <input
-                                        type="text"
-                                        value={formData.turma || ''}
-                                        onChange={(e) => setFormData({ ...formData, turma: e.target.value })}
-                                        className="w-full px-4 py-3 bg-black/5 border-none rounded-xl focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all font-medium"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-black/70 mb-1.5 focus-within:text-[#00A859]">Série (Ex: Ens. Fund.)</label>
+                                    <label className="block text-sm font-semibold text-black/70 mb-1.5 focus-within:text-[#00A859]">Série/Nível (Ex: 5º Ano / Intermediário)</label>
                                     <input
                                         type="text"
                                         value={formData.serie || ''}

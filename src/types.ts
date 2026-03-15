@@ -12,7 +12,6 @@ export interface Student {
   id: string;
   nome: string;
   data_nascimento?: string;
-  turma?: string;
   serie?: string;
   status?: string;
   necessidades_especiais?: boolean;
@@ -26,7 +25,6 @@ export interface PedagogicalRecord {
   title: string;
   description: string;
   date: string;
-  turma?: string;
   createdAt: string;
   studentName?: string;
   yearGrade?: string;
@@ -42,14 +40,8 @@ export interface PedagogicalRecord {
   professorName?: string;
   discipline?: string;
   schoolUnit?: string;
-  totalAulasDadas?: string;
-  aulasPrevistas?: string;
-  aulasPendentes?: string;
-  apdHours?: string;
   metodologias?: string;
   materiaisDidaticos?: string;
-  frequenciaDiaria?: string;
-  justificativasFaltas?: string;
   obsComportamento?: string;
   comunicacaoResponsaveis?: string;
   participacaoConselhos?: string;
@@ -57,6 +49,14 @@ export interface PedagogicalRecord {
   formacaoContinuada?: string;
   autoavaliacao?: string;
   feedbackCoordenacao?: string;
+  // Workload related (used in Registro Mensal)
+  turma?: string;
+  totalAulasDadas?: string;
+  aulasPrevistas?: string;
+  aulasPendentes?: string;
+  apdHours?: string;
+  frequenciaDiaria?: string;
+  justificativasFaltas?: string;
   exportFormat?: 'pdf' | 'csv';
 }
 
@@ -71,13 +71,9 @@ export const NAV_ITEMS: NavItem[] = [
 
   // Relatórios
   { id: 'relatorio-individual', label: 'Relatório Individual', icon: 'FileText', category: 'Relatórios', roles: ['diretor', 'professor', 'free', 'pro'] },
-  { id: 'relatorios-turma', label: 'Relatórios da Turma', icon: 'Users', category: 'Relatórios', roles: ['diretor', 'professor', 'free', 'pro'] },
   { id: 'parecer-pcd', label: 'Parecer PCD', icon: 'Accessibility', category: 'Relatórios', roles: ['diretor', 'professor', 'pro'] },
   { id: 'parecer-final', label: 'Parecer Final (IA)', icon: 'Sparkles', category: 'Relatórios', roles: ['diretor', 'professor', 'pro'] },
 
-  // Gestão Escolar (Escola only)
+  // Gestão (Teacher centric)
   { id: 'alunos', label: 'Alunos', icon: 'Users', category: 'Gestão Escolar', roles: ['diretor', 'professor', 'pro'] },
-  { id: 'professores', label: 'Professores', icon: 'GraduationCap', category: 'Gestão Escolar', roles: ['diretor'] },
-  { id: 'turmas', label: 'Turmas', icon: 'School', category: 'Gestão Escolar', roles: ['diretor'] },
-  { id: 'presenca', label: 'Presença', icon: 'CheckSquare', category: 'Gestão Escolar', roles: ['diretor', 'professor'] },
 ];

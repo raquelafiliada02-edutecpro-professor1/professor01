@@ -78,14 +78,12 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
       { label: 'Diário Semanal (1/semana)', icon: Calendar },
       { label: 'Registro Mensal (1/mês)', icon: ClipboardList },
       { label: 'Plano de Aula (1/semana)', icon: BookOpen },
-      { label: 'Relatórios da Turma (1/semana)', icon: Users },
       { label: 'Banco de frases (2/semana)', icon: MessageSquare },
     ] : [
       { label: 'Relatórios ilimitados', icon: FileText },
       { label: 'Parecer PCD disponível', icon: Accessibility },
       { label: 'BNCC automática com IA', icon: Zap },
       { label: 'Banco de frases completo', icon: MessageSquare },
-      { label: 'Relatórios da turma ilimitados', icon: Users },
       { label: 'Exportar relatórios em PDF', icon: FileDown },
       { label: 'Gerador de parecer final', icon: Sparkles },
       { label: 'Dashboard de evolução', icon: LayoutDashboard },
@@ -311,7 +309,6 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
                   'Diário Semanal (1/semana)',
                   'Registro Mensal (1/mês)',
                   'Plano de Aula (1/semana)',
-                  'Relatórios da Turma (1/semana)',
                   'Banco de frases (2/semana)'
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm text-black/70">
@@ -347,7 +344,6 @@ export default function LandingPage({ onLogin, onGoToLogin, onGoToPayment, onGoT
                   'Parecer PCD disponível',
                   'BNCC automática com IA',
                   'Banco de frases completo',
-                  'Relatórios da turma ilimitados',
                   'Exportar relatórios em PDF',
                   'Gerador de parecer final',
                   'Dashboard de evolução'

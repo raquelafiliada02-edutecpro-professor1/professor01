@@ -11,6 +11,7 @@ import StudentManager from './StudentManager';
 import { supabase } from '../lib/supabase';
 import { bnccCodesList } from '../lib/bnccCodes';
 import DataRetentionBanner from './DataRetentionBanner';
+import { useBncc } from '../hooks/useBncc';
 
 interface DashboardProps {
   userId: string;
@@ -50,6 +51,7 @@ export default function Dashboard({
   const [manualBnccInput, setManualBnccInput] = useState('');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [recordForExport, setRecordForExport] = useState<PedagogicalRecord | null>(null);
+  const { bnccCodes: dbBnccCodes, isLoading: isBnccLoading } = useBncc();
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -291,42 +293,29 @@ export default function Dashboard({
     // Se o registro possuir códigos BNCC, salvar no supabase
     if (formData.bnccCodes.length > 0) {
       try {
-        // 1. Inserir códigos BNCC caso não existam (upsert / on conflict do nothing não nativo via client requer malabarismos no array, 
-        // mas tentaremos o upsert por bloco se o código for unique, ou ignoraremos conflito via restrição de tabela)
-        for (const code of formData.bnccCodes) {
-          const matchedStatic = bnccCodesList.find(b => b.codigo === code);
-          const rawDescricao = matchedStatic ? matchedStatic.descricao : 'Inserido manualmente';
+        // Encontrar os IDs reais para os códigos selecionados
+        const selectedBnccIds = dbBnccCodes
+          .filter(b => formData.bnccCodes.includes(b.codigo))
+          .map(b => b.id);
 
-          // Tentativa de insert limpo ignorando se já existir
-          const { error: bnccError } = await supabase
-            .from('bncc_codes')
-            .upsert({
-              codigo: code,
-              descricao: rawDescricao
-            }, { onConflict: 'codigo', ignoreDuplicates: true });
+        if (selectedBnccIds.length > 0) {
+          // 1. Limpar vínculos antigos se for edição
+          if (editingRecord) {
+            await supabase
+              .from('planejamento_bncc')
+              .delete()
+              .eq('planejamento_id', recordIdToSave);
+          }
 
-          if (bnccError) console.error("Erro inserindo bncc_codes:", bnccError);
-        }
-
-        // 2. Recuperar os IDs reais do banco de dados para criar os vínculos 
-        // (necessário pois a tabela planejamento_bncc deve referenciar o `id` (uuid) que é a PK de bncc_codes)
-        const { data: insertedCodes, error: fetchError } = await supabase
-          .from('bncc_codes')
-          .select('id, codigo')
-          .in('codigo', formData.bnccCodes);
-
-        if (fetchError) throw fetchError;
-
-        if (insertedCodes && insertedCodes.length > 0) {
-          // 3. Inserir na tabela relacional planejamento_bncc
-          const planejamemtoBnccInserts = insertedCodes.map(c => ({
+          // 2. Inserir na tabela relacional planejamento_bncc
+          const planejamemtoBnccInserts = selectedBnccIds.map(bnccId => ({
             planejamento_id: recordIdToSave,
-            bncc_id: c.id
+            bncc_id: bnccId
           }));
 
           const { error: relError } = await supabase
             .from('planejamento_bncc')
-            .insert(planejamemtoBnccInserts); // Irá inserir, pode dar conflito de duplicate se já existia, ideal deletar velhos antes na edição
+            .insert(planejamemtoBnccInserts);
 
           if (relError) console.error("Erro inserindo na tabela relacional:", relError);
         }
@@ -630,10 +619,11 @@ export default function Dashboard({
                             const selectedOptions = Array.from(e.target.selectedOptions, (option: any) => option.value);
                             setFormData({ ...formData, bnccCodes: selectedOptions });
                           }}
+                          disabled={isBnccLoading}
                           className="w-full px-4 py-3 rounded-xl border border-black/10 focus:border-[#00A859] focus:ring-2 focus:ring-[#00A859]/20 outline-none transition-all bg-white text-sm"
                         >
-                          {bnccCodesList.map((bncc) => (
-                            <option key={bncc.codigo} value={bncc.codigo} className="py-2 px-2 border-b border-black/5 hover:bg-black/5 cursor-pointer">
+                          {dbBnccCodes.map((bncc) => (
+                            <option key={bncc.id} value={bncc.codigo} className="py-2 px-2 border-b border-black/5 hover:bg-black/5 cursor-pointer">
                               {bncc.codigo} - {bncc.descricao.substring(0, 60)}{bncc.descricao.length > 60 ? '...' : ''}
                             </option>
                           ))}
